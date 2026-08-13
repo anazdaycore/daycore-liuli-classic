@@ -1194,6 +1194,55 @@ body {
   color: var(--warning);
 }
 
+/* ── fullscreen exercise ── */
+
+.lc-exercise {
+  position: fixed;
+  inset: 0;
+  background: var(--bg-start);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.lc-exercise-inner {
+  max-width: 380px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  text-align: center;
+}
+
+.lc-exercise-title {
+  margin: 0;
+  font-size: 22px;
+}
+
+.lc-exercise-ball {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--primary) 28%, transparent);
+  animation: lc-breathe 6s ease-in-out infinite;
+}
+
+@keyframes lc-breathe {
+  0%, 100% { transform: scale(0.8); opacity: 0.6; }
+  50% { transform: scale(1.15); opacity: 1; }
+}
+
+.lc-exercise-body {
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.7;
+  white-space: pre-line;
+  margin: 0;
+}
+
 /* ── media queries, last ── */
 
 @media (min-width: 900px) {

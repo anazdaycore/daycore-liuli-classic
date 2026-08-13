@@ -30,6 +30,11 @@ export function PageSettings({ boot }: { boot: Boot }) {
   const [bindToken, setBindToken] = useState('');
   const [user, setUser] = useState<User | null>(null);
   const [name, setName] = useState(boot.session.assistantName ?? '');
+  const [persona, setPersona] = useState('');
+  const [activeTheme, setActiveTheme] = useState(boot.session.currentTheme ?? 'sky');
+  const [themeDesc, setThemeDesc] = useState('');
+  const [themeName, setThemeName] = useState('');
+  const [generated, setGenerated] = useState<Record<string, string> | null>(null);
   const [newFact, setNewFact] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -82,7 +87,64 @@ export function PageSettings({ boot }: { boot: Boot }) {
       // 换。内置走属性选择器；自定义以底座（dark?'night':base||'sky'）为底，
       // variables 逐条写进 :root。切回内置时 applyThemeVars 会先清掉旧的 inline。
       applyThemeVars(id, themes);
+      setActiveTheme(id);
     });
+  }
+
+  async function genTheme() {
+    if (!themeDesc.trim()) return;
+    setBusy(true);
+    setError('');
+    try {
+      const res = await api.generateTheme(themeDesc.trim());
+      if (res.variables && Object.keys(res.variables).length > 0) {
+        setGenerated(res.variables);
+        setThemeName(themeDesc.trim().slice(0, 24));
+      } else {
+        setError(String(res.message ?? res.error ?? ''));
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function saveGenerated() {
+    if (!generated) return;
+    setBusy(true);
+    try {
+      const th = await api.saveTheme({ name: themeName.trim() || 'custom', variables: generated });
+      applyThemeVars(th.id, [th]);
+      setActiveTheme(th.id);
+      setGenerated(null);
+      setThemeDesc('');
+      await load();
+      setError('');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function delTheme(id: string) {
+    setBusy(true);
+    try {
+      await api.deleteTheme(id);
+      // 后端会把「正用着的主题」重置为默认 sky，这里同步回退而不是继续指着
+      // 一个刚删掉的 id。
+      if (activeTheme === id) {
+        applyThemeVars('sky', []);
+        setActiveTheme('sky');
+      }
+      await load();
+      setError('');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -109,6 +171,27 @@ export function PageSettings({ boot }: { boot: Boot }) {
             }
           }}
           aria-label={t('settings.assistant')}
+        />
+      </section>
+
+      {/* ── 对助手的嘱咐（L2 提示词）──
+          ⚠️ 后端 Session.PersonaPrompt 是 json:"-"，没有读接口：这里只能写、
+          读不回来，所以失焦即存，但下次进来看不到上一次写的内容。这是个已知缺口。 */}
+      <section className="lc-card">
+        <h2 className="lc-cardtitle">{t('settings.persona')}</h2>
+        <p className="lc-sub">{t('settings.personaSub')}</p>
+        <textarea
+          className="lc-input lc-textarea"
+          rows={4}
+          maxLength={2000}
+          placeholder={t('settings.personaPh')}
+          value={persona}
+          onChange={(e) => setPersona(e.target.value)}
+          onBlur={() => {
+            const v = persona.trim();
+            if (v) void guard(() => api.patchSettings({ personaPrompt: v }));
+          }}
+          aria-label={t('settings.persona')}
         />
       </section>
 
@@ -157,19 +240,52 @@ export function PageSettings({ boot }: { boot: Boot }) {
         <h2 className="lc-cardtitle">{t('settings.theme')}</h2>
         <div className="lc-seg">
           {builtin.map((id) => (
-            <button key={id} className="lc-segitem" onClick={() => applyTheme(id)}>
+            <button key={id} className={'lc-segitem' + (activeTheme === id ? ' on' : '')} onClick={() => applyTheme(id)}>
               {t(`theme.${id}`)}
             </button>
           ))}
         </div>
         {themes.length > 0 && (
-          <div className="lc-seg">
+          <ul className="lc-list">
             {themes.map((th) => (
-              <button key={th.id} className="lc-segitem" onClick={() => applyTheme(th.id)}>
-                {th.name}
-              </button>
+              <li key={th.id} className="lc-row">
+                <button
+                  className={'lc-segitem' + (activeTheme === th.id ? ' on' : '')}
+                  onClick={() => applyTheme(th.id)}
+                >
+                  {th.name}
+                </button>
+                <button className="lc-btn sec" disabled={busy} onClick={() => void delTheme(th.id)}>
+                  {t('common.delete')}
+                </button>
+              </li>
             ))}
+          </ul>
+        )}
+        {/* ── 主题工作室：AI 生成 → 保存 ── */}
+        <div className="lc-field">
+          <span className="lc-field-label">{t('settings.themeGenerate')}</span>
+          <textarea
+            className="lc-input lc-textarea"
+            rows={2}
+            placeholder={t('settings.themeGenPh')}
+            value={themeDesc}
+            onChange={(e) => setThemeDesc(e.target.value)}
+          />
+        </div>
+        {generated ? (
+          <div className="lc-field">
+            <span className="lc-field-label">{t('settings.themeName')}</span>
+            <input className="lc-input" value={themeName} onChange={(e) => setThemeName(e.target.value)} />
+            <div className="lc-sheet-actions">
+              <button className="lc-btn sec" onClick={() => setGenerated(null)}>{t('common.cancel')}</button>
+              <button className="lc-btn pri" disabled={busy} onClick={() => void saveGenerated()}>{t('settings.themeSave')}</button>
+            </div>
           </div>
+        ) : (
+          <button className="lc-btn sec" disabled={busy || !themeDesc.trim()} onClick={() => void genTheme()}>
+            {t('settings.themeGenerateBtn')}
+          </button>
         )}
         {boot.deferred.length > 0 && (
           // Not an error and not silent: an operator has to approve a kind

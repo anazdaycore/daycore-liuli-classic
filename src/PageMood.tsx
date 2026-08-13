@@ -36,6 +36,7 @@ export function PageMood({ boot }: { boot: Boot }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [note, setNote] = useState('');
+  const [exercise, setExercise] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -54,6 +55,22 @@ export function PageMood({ boot }: { boot: Boot }) {
   useEffect(() => {
     void load();
   }, [load]);
+
+  async function startExercise(id: (typeof EXERCISES)[number]) {
+    setExercise(id);
+    // ⚠️ markExerciseDone takes a CHECK-IN id, not an exercise name — it means
+    // "that check-in's exercise is done". Tie it to the most recent check-in
+    // (best-effort): with no history there is nothing to mark and the exercise
+    // still opens.
+    const latest = history[0];
+    if (latest) {
+      try {
+        await api.markExerciseDone(latest.id);
+      } catch {
+        /* a missing check-in is not a reason to withhold the exercise */
+      }
+    }
+  }
 
   async function record(kind: MoodKind) {
     setBusy(true);
@@ -120,12 +137,25 @@ export function PageMood({ boot }: { boot: Boot }) {
         <p className="lc-sub">{t('mood.exercisesNote')}</p>
         <div className="lc-actrow">
           {EXERCISES.map((id) => (
-            <button key={id} className="lc-btn sec">
+            <button key={id} className="lc-btn sec" onClick={() => void startExercise(id)}>
               {t(`mood.exercise.${id}`)}
             </button>
           ))}
         </div>
       </section>
+
+      {exercise && (
+        <div className="lc-exercise" onClick={() => setExercise(null)}>
+          <div className="lc-exercise-inner" onClick={(e) => e.stopPropagation()}>
+            <h2 className="lc-exercise-title">{t(`mood.exercise.${exercise}`)}</h2>
+            <div className="lc-exercise-ball" aria-hidden="true" />
+            <p className="lc-exercise-body">{t(`mood.exercise.${exercise}Body`)}</p>
+            <button className="lc-btn pri" onClick={() => setExercise(null)}>
+              {t('mood.exercise.done')}
+            </button>
+          </div>
+        </div>
+      )}
 
       {history.length > 0 && (
         <ul className="lc-list">

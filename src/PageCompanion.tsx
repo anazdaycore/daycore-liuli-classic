@@ -232,6 +232,19 @@ export function PageCompanion({ boot, nav }: { boot: Boot; nav: Nav }) {
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages.length, pendingDecision]);
 
+  async function newThread() {
+    try {
+      const th = await api.createThread();
+      // ⚠️ Select the new thread, not just reload the list — a fresh conversation
+      // should BE the one you are looking at, otherwise the composer keeps
+      // writing into the old one and the reader has to hunt for where it went.
+      setCurrent(th.id);
+      await loadThreads();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  }
+
   async function send() {
     const text = draft.trim();
     if (!text || busy || pendingDecision) return;
@@ -272,7 +285,7 @@ export function PageCompanion({ boot, nav }: { boot: Boot; nav: Nav }) {
     <div className="lc-page lc-chat">
       <header className="lc-head">
         <h1 className="lc-title">{t('nav.companion')}</h1>
-        <button className="lc-btn sec" onClick={() => void api.createThread().then(() => loadThreads())}>
+        <button className="lc-btn sec" onClick={() => void newThread()}>
           {t('companion.newThread')}
         </button>
       </header>
