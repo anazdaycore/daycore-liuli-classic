@@ -144,6 +144,26 @@ export function useStore(boot: Boot) {
     [act, t],
   );
 
+  /**
+   * Take one row of a compound card.
+   *
+   * ⚠️ A compound card CANNOT be answered by `answer(p, true)`. The server reads
+   * the choice as a row id, so "accept" matches nothing: the card flips to
+   * accepted, the ops hanging off its rows never run, and the reader watches a
+   * button do nothing — silently, with a 200.
+   *
+   * Every card the daemon producers emit is compound, so this is the ordinary
+   * path rather than an edge case.
+   */
+  const take = useCallback(
+    (p: api.Proposal, rowID: string) =>
+      act(
+        () => api.respondToProposalRow(p.id, rowID),
+        t('undo.accepted', { title: p.title }),
+      ),
+    [act, t],
+  );
+
   const takeBack = useCallback(async () => {
     if (!undo) return;
     const id = undo.opId;
@@ -177,6 +197,7 @@ export function useStore(boot: Boot) {
     remove,
     add,
     answer,
+    take,
     takeBack,
     refresh,
   };

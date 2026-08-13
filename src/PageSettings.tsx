@@ -274,6 +274,12 @@ export function PageSettings({ boot }: { boot: Boot }) {
         <p className="lc-sub">
           {t('settings.version', { app: __APP_VERSION__, api: String(boot.handshake.version ?? '') })}
         </p>
+        {/* ⚠️ Said out loud, somewhere calm, rather than left in a field nobody
+            reads. The backend serves a newer contract than this build speaks; it
+            still serves ours, so everything works — but "works" and "is current"
+            are different claims, and the second one going quietly false is the
+            failure this flag exists to surface. */}
+        {boot.backendAhead && <p className="lc-sub">{t('settings.backendAhead')}</p>}
         {/* ⚠️ Shown unconditionally, and that is the honest choice rather than
             the lazy one. GET /api/me carries `isOwner`, so a conditional is
             possible — but roles are NOT in that shape, so it would be right for

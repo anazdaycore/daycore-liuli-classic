@@ -151,13 +151,32 @@ export function PageToday({ boot, store }: { boot: Boot; store: Store }) {
         <article key={p.id} className="lc-card ghost">
           <h2 className="lc-cardtitle">{p.title}</h2>
           {p.summary && <p className="lc-sub">{p.summary}</p>}
+          {/* ⚠️ A compound card is a MENU, and it cannot be answered by the
+              accept/reject pair: the server reads the choice as a row id, so
+              "accept" matches nothing — the card settles and the ops hanging off
+              its rows never run. Every card the daemon producers emit has rows. */}
           <div className="lc-actrow">
-            <button className="lc-btn pri" disabled={store.busy} onClick={() => void store.answer(p, true)}>
-              {t('proposal.accept')}
-            </button>
-            <button className="lc-btn sec" disabled={store.busy} onClick={() => void store.answer(p, false)}>
-              {t('proposal.reject')}
-            </button>
+            {p.rows?.length ? (
+              p.rows.map((row) => (
+                <button
+                  key={row.id}
+                  className="lc-btn sec"
+                  disabled={store.busy}
+                  onClick={() => void store.take(p, row.id)}
+                >
+                  {row.label}
+                </button>
+              ))
+            ) : (
+              <>
+                <button className="lc-btn pri" disabled={store.busy} onClick={() => void store.answer(p, true)}>
+                  {t('proposal.accept')}
+                </button>
+                <button className="lc-btn sec" disabled={store.busy} onClick={() => void store.answer(p, false)}>
+                  {t('proposal.reject')}
+                </button>
+              </>
+            )}
           </div>
         </article>
       ))}
