@@ -8,6 +8,7 @@ import {
   inRange,
   monthGrid,
   pickRange,
+  presetRange,
   toDate,
   todayIso,
   weekOf,
@@ -303,6 +304,26 @@ describe('pickRange', () => {
       from: '2026-08-01',
       to: '2026-08-30',
     });
+  });
+});
+
+describe('presetRange', () => {
+  const today = '2026-08-11';
+
+  it('resolves today as a single day', () => {
+    expect(presetRange('today', today)).toEqual({ from: today, to: today });
+  });
+
+  it('resolves tomorrow as a single day', () => {
+    expect(presetRange('tomorrow', today)).toEqual({ from: '2026-08-12', to: '2026-08-12' });
+  });
+
+  it('resolves d3 as today plus two', () => {
+    expect(presetRange('d3', today)).toEqual({ from: today, to: '2026-08-13' });
+  });
+
+  it('resolves week as today plus six', () => {
+    expect(presetRange('week', today)).toEqual({ from: today, to: '2026-08-17' });
   });
 });
 

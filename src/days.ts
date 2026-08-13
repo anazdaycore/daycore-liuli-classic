@@ -217,6 +217,24 @@ export function groupDay(
   return { timed, nowIndex, floating };
 }
 
+/** The one-tap planning ranges, before any custom pick. */
+export type PlanPreset = 'today' | 'tomorrow' | 'd3' | 'week';
+
+/**
+ * Resolve a one-tap preset into a closed range.
+ *
+ * ⚠️ No cap is applied here — the same reason pickRange carries none: the real
+ * limit is AUTO_PLAN_MAX_DAYS, a runtime config the backend does not publish.
+ * Sending it and rendering the backend's own range_too_large is the only answer
+ * that stays right on every install.
+ */
+export function presetRange(preset: PlanPreset, today: string): { from: string; to: string } {
+  if (preset === 'today') return { from: today, to: today };
+  if (preset === 'tomorrow') return { from: addDays(today, 1), to: addDays(today, 1) };
+  if (preset === 'd3') return { from: today, to: addDays(today, 2) };
+  return { from: today, to: addDays(today, 6) };
+}
+
 /** A closed date range being picked on a calendar. */
 export interface Range {
   from: string;

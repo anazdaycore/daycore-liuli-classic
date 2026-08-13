@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import * as api from '@daycore/core';
-import type { Boot } from '@daycore/core';
+import { ApiError, type Boot } from '@daycore/core';
 import { foldRange, groupDay, nowMin, todayIso, weekOf, type DayCell, type Grouped } from './days';
 
 // 初版's state.
@@ -22,7 +22,24 @@ export interface UndoOffer {
   label: string;
 }
 
+/** A refused plan write, read off the 409 envelope so the UI can offer the
+ *  three ways out instead of just a sentence. The editor shows one block at a
+ *  time, so it does not need to know which block the refusal names. */
+export interface PlanRefusal {
+  code: 'locked' | 'petrified' | 'refish_capped';
+}
+
 const UNDO_MS = 4000;
+
+function refusalOf(e: unknown): PlanRefusal | null {
+  if (!(e instanceof ApiError) || e.status !== 409) return null;
+  const body = e.body as { code?: string } | null;
+  const code = body?.code;
+  if (code === 'locked' || code === 'petrified' || code === 'refish_capped') {
+    return { code };
+  }
+  return null;
+}
 
 export function useStore(boot: Boot) {
   const t = boot.catalog.t;
@@ -31,6 +48,7 @@ export function useStore(boot: Boot) {
   const [week, setWeek] = useState<DayCell[]>([]);
   const [proposals, setProposals] = useState<api.Proposal[]>([]);
   const [undo, setUndo] = useState<UndoOffer | null>(null);
+  const [refusal, setRefusal] = useState<PlanRefusal | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [tick, setTick] = useState(() => nowMin());
@@ -78,11 +96,15 @@ export function useStore(boot: Boot) {
    * ⚠️ The op id comes from GET /api/ops AFTER the write — the write endpoints
    * answer with the new state, not with the operation. An undo bar that cannot
    * name what it would undo is decoration.
+   *
+   * ⚠️ A 409 from the plan gate is surfaced as `refusal` rather than folded into
+   * the generic error line, so the caller can render the three ways out.
    */
   const act = useCallback(
     async (run: () => Promise<unknown>, label: string) => {
       setBusy(true);
       setError('');
+      setRefusal(null);
       try {
         await run();
         let opId: string | null = null;
@@ -96,7 +118,13 @@ export function useStore(boot: Boot) {
         await refresh();
         if (opId) offer(opId, label);
       } catch (e) {
-        setError(e instanceof Error ? e.message : String(e));
+        const refusal = refusalOf(e);
+        if (refusal) {
+          setRefusal(refusal);
+          setError(e instanceof Error ? e.message : String(e));
+        } else {
+          setError(e instanceof Error ? e.message : String(e));
+        }
         // ⚠️ Reload even on failure. A 409 from the plan gate means the server's
         // day differs from the one on screen, and that is exactly when showing
         // the stale one is worst.
@@ -113,6 +141,24 @@ export function useStore(boot: Boot) {
       act(
         () => api.patchPlan(date, { action: 'update', match: { id: b.id }, changes: { completed: true } }),
         t('undo.completed', { title: b.title }),
+      ),
+    [act, date, t],
+  );
+
+  const toggleComplete = useCallback(
+    (b: api.TimeBlock) =>
+      act(
+        () => api.patchPlan(date, { action: 'update', match: { id: b.id }, changes: { completed: !b.completed } }),
+        t(b.completed ? 'undo.uncompleted' : 'undo.completed', { title: b.title }),
+      ),
+    [act, date, t],
+  );
+
+  const update = useCallback(
+    (b: api.TimeBlock, changes: Record<string, unknown>) =>
+      act(
+        () => api.patchPlan(date, { action: 'update', match: { id: b.id }, changes }),
+        t('undo.updated', { title: b.title }),
       ),
     [act, date, t],
   );
@@ -135,6 +181,15 @@ export function useStore(boot: Boot) {
     [act, date, t],
   );
 
+  const addBlock = useCallback(
+    (target: string, block: Record<string, unknown>) =>
+      act(
+        () => api.patchPlan(target, { action: 'add', block }),
+        t('undo.added', { title: String(block.title ?? '') }),
+      ),
+    [act, t],
+  );
+
   const answer = useCallback(
     (p: api.Proposal, accept: boolean) =>
       act(
@@ -144,17 +199,6 @@ export function useStore(boot: Boot) {
     [act, t],
   );
 
-  /**
-   * Take one row of a compound card.
-   *
-   * ⚠️ A compound card CANNOT be answered by `answer(p, true)`. The server reads
-   * the choice as a row id, so "accept" matches nothing: the card flips to
-   * accepted, the ops hanging off its rows never run, and the reader watches a
-   * button do nothing — silently, with a 200.
-   *
-   * Every card the daemon producers emit is compound, so this is the ordinary
-   * path rather than an edge case.
-   */
   const take = useCallback(
     (p: api.Proposal, rowID: string) =>
       act(
@@ -179,6 +223,29 @@ export function useStore(boot: Boot) {
     }
   }, [undo, refresh]);
 
+  // The three ways out of a 409 locked — each is a real write, so it goes
+  // through act (undo + refresh), and clears the refusal on success.
+  const unlock = useCallback(
+    (b: api.TimeBlock) =>
+      act(() => api.lockPlanBlock(date, b.id, 'none'), t('undo.unlocked', { title: b.title })),
+    [act, date, t],
+  );
+
+  const markConflict = useCallback(
+    (b: api.TimeBlock) =>
+      act(() => api.markConflict(date, b.id), t('undo.conflicted', { title: b.title })),
+    [act, date, t],
+  );
+
+  const reschedule = useCallback(
+    (b: api.TimeBlock) =>
+      act(
+        () => api.refishBlock(date, { title: b.title, type: b.type, rescheduled_from: b.id }),
+        t('undo.rescheduled', { title: b.title }),
+      ),
+    [act, date, t],
+  );
+
   const grouped: Grouped = groupDay(plan?.blocks ?? [], { date, today, nowMinutes: tick });
 
   return {
@@ -190,15 +257,22 @@ export function useStore(boot: Boot) {
     week,
     proposals: proposals.filter((p) => p.state === 'pending'),
     undo,
+    refusal,
     busy,
     error,
     setError,
     complete,
+    toggleComplete,
+    update,
     remove,
     add,
+    addBlock,
     answer,
     take,
     takeBack,
+    unlock,
+    markConflict,
+    reschedule,
     refresh,
   };
 }

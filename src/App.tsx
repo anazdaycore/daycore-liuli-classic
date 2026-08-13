@@ -126,8 +126,8 @@ export function App({ boot }: { boot: Boot }) {
   return (
     <div className={'lc-app' + (wide ? ' wide' : '')}>
       {nav}
-      <main className="lc-main">
-        {page === 'today' && <PageToday boot={boot} store={store} />}
+      <main className={'lc-main' + (page === 'today' && wide ? ' lc-main-today' : '')}>
+        {page === 'today' && <PageToday boot={boot} store={store} nav={navigation} />}
         {page === 'materials' && <PageMaterials boot={boot} />}
         {page === 'companion' && <PageCompanion boot={boot} nav={navigation} />}
         {page === 'mood' && <PageMood boot={boot} />}
