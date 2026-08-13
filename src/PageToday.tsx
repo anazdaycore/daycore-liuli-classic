@@ -311,7 +311,7 @@ function BlockRow({ b, store, t }: { b: TimeBlock; store: Store; t: Boot['catalo
       <div className="lc-cardmain">
         {b.time && <span className="lc-time">{b.time}</span>}
         <span className="lc-cardtitle">{b.title}</span>
-        {b.lockLevel === 'hard' && <span className="lc-tag">{t('block.locked')}</span>}
+        {b.lock_level === 'hard' && <span className="lc-tag">{t('block.locked')}</span>}
       </div>
       <div className="lc-actrow">
         {!b.completed && (
