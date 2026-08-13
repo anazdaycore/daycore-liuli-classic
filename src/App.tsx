@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
+import * as api from '@daycore/core';
 import type { Boot } from '@daycore/core';
+import { applyTheme } from './theme';
 import { useStore } from './store';
 import { PageToday } from './PageToday';
 import { PageMaterials } from './PageMaterials';
@@ -53,6 +55,24 @@ export function App({ boot }: { boot: Boot }) {
   const store = useStore(boot);
   const [page, setPage] = useState<PageId>('today');
   const wide = useWide();
+
+  // ⚠️ main.tsx 首屏 setAttribute 只够覆盖内置主题（它拿不到自定义主题的
+  // variables）。这里补上真正的应用：查一次 /api/themes，若会话正停在自定义
+  // 主题上，把变量写进 :root；查不到就回落 sky，而不是挂着空主题。
+  useEffect(() => {
+    let live = true;
+    void api
+      .themes()
+      .then((th) => {
+        if (live) applyTheme(boot.session.currentTheme || 'sky', th.themes ?? []);
+      })
+      .catch(() => {
+        if (live) applyTheme('sky', []);
+      });
+    return () => {
+      live = false;
+    };
+  }, [boot.session.currentTheme]);
 
   // ⚠️ Only 今日 carries a count today, and the honesty of that is the point.
   // 陪伴 would need "messages since you last looked", which nothing stores;

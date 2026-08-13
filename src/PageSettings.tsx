@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import * as api from '@daycore/core';
 import type { Boot, ChannelBinding, CustomTheme, MemoryFact, SessionPrefs, User } from '@daycore/core';
+import { applyTheme as applyThemeVars } from './theme';
 
 // 设置：这一份安装的所有旋钮。
 //
@@ -75,7 +76,10 @@ export function PageSettings({ boot }: { boot: Boot }) {
   function applyTheme(id: string) {
     void guard(async () => {
       await api.setTheme(id);
-      document.documentElement.setAttribute('data-theme', id);
+      // ⚠️ 自定义主题没有对应的 CSS 规则：id 无选择器，光 setAttribute 等于没
+      // 换。内置走属性选择器；自定义以底座（dark?'night':base||'sky'）为底，
+      // variables 逐条写进 :root。切回内置时 applyThemeVars 会先清掉旧的 inline。
+      applyThemeVars(id, themes);
     });
   }
 
