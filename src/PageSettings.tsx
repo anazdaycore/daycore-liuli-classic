@@ -47,7 +47,9 @@ export function PageSettings({ boot }: { boot: Boot }) {
       setPrefs(p);
       setFacts(m.facts ?? []);
       setThemes(th.themes ?? []);
-      setBuiltin((th.builtin ?? []).map((b) => (typeof b === 'string' ? b : b.id)));
+      // ⚠️ builtin 是纯 id 列表（后端 domain.BuiltinThemes = []string{…}），
+      // 不是带 name 的对象 —— 直接存下来即可。
+      setBuiltin(th.builtin ?? []);
       setBindings(ch.bindings ?? []);
       setUser(meRes.user);
       setError('');

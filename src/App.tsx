@@ -30,6 +30,15 @@ export type PageId = 'today' | 'materials' | 'companion' | 'mood' | 'settings';
 
 export const PAGES: PageId[] = ['today', 'materials', 'companion', 'mood', 'settings'];
 
+/**
+ * 跨页导航。动作卡「查看规则/记忆/计划」与块卡「编辑规则」都要带着意图跳页，
+ * 所以导航除了切页还得能塞参数（如资料页直接落到 rules tab）。
+ */
+export interface Nav {
+  go: (page: PageId, params?: Record<string, string>) => void;
+  params: Record<string, string>;
+}
+
 /** The rail appears here. Below it, the tab bar. */
 const RAIL_MIN_WIDTH = 900;
 
@@ -54,7 +63,16 @@ export function App({ boot }: { boot: Boot }) {
   const t = boot.catalog.t;
   const store = useStore(boot);
   const [page, setPage] = useState<PageId>('today');
+  const [navParams, setNavParams] = useState<Record<string, string>>({});
   const wide = useWide();
+
+  const go: Nav['go'] = (next, params) => {
+    setNavParams(params ?? {});
+    setPage(next);
+    // The repo's own rule: scrollTop, never scrollIntoView.
+    window.scrollTo(0, 0);
+  };
+  const navigation: Nav = { go, params: navParams };
 
   // ⚠️ main.tsx 首屏 setAttribute 只够覆盖内置主题（它拿不到自定义主题的
   // variables）。这里补上真正的应用：查一次 /api/themes，若会话正停在自定义
@@ -90,11 +108,7 @@ export function App({ boot }: { boot: Boot }) {
             key={id}
             className={'lc-navitem' + (page === id ? ' on' : '')}
             aria-current={page === id ? 'page' : undefined}
-            onClick={() => {
-              setPage(id);
-              // The repo's own rule: scrollTop, never scrollIntoView.
-              window.scrollTo(0, 0);
-            }}
+            onClick={() => go(id)}
           >
             <span className="lc-navdot" aria-hidden="true" />
             <span className="lc-navlabel">{t(`nav.${id}`)}</span>
@@ -115,7 +129,7 @@ export function App({ boot }: { boot: Boot }) {
       <main className="lc-main">
         {page === 'today' && <PageToday boot={boot} store={store} />}
         {page === 'materials' && <PageMaterials boot={boot} />}
-        {page === 'companion' && <PageCompanion boot={boot} />}
+        {page === 'companion' && <PageCompanion boot={boot} nav={navigation} />}
         {page === 'mood' && <PageMood boot={boot} />}
         {page === 'settings' && <PageSettings boot={boot} />}
       </main>
