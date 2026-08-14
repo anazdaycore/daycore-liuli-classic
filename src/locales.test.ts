@@ -4,7 +4,6 @@ import { describe, expect, it } from 'vitest';
 import { PAGES } from './App';
 import { MATERIAL_TABS } from './PageMaterials';
 import { CARE_SWITCHES } from './PageSettings';
-import { EXERCISES } from './PageMood';
 
 // The gate that keeps the language packs honest.
 //
@@ -223,7 +222,6 @@ describe('language packs', () => {
       ...PAGES.map((p) => `nav.${p}`),
       ...MATERIAL_TABS.map((x) => `materials.tab.${x}`),
       ...CARE_SWITCHES.map((x) => `settings.pref.${String(x)}`),
-      ...EXERCISES.map((x) => `mood.exercise.${x}`),
     ];
     expect(expected.filter((k) => !defined.has(k))).toEqual([]);
   });

@@ -407,6 +407,7 @@ body {
 @media (max-width: 380px) { .lc-moods { grid-template-columns: repeat(3, 1fr); } }
 .lc-mood { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 14px 6px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); color: var(--text-secondary); font: inherit; font-size: 12px; cursor: pointer; backdrop-filter: blur(16px); }
 .lc-mood:hover { background: var(--surface-hover); }
+.lc-mood.on { border-color: var(--primary); box-shadow: 0 4px 16px color-mix(in srgb, var(--primary) 22%, transparent); }
 .lc-moodemoji { font-size: 24px; line-height: 1; }
 .lc-moodname { font-size: 12px; }
 
