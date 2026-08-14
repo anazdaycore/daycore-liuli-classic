@@ -83,6 +83,9 @@ export function PageMaterials({ boot, nav }: { boot: Boot; nav: Nav }) {
   const [cats, setCats] = useState<MaterialCategory[]>([]);
   const [cat, setCat] = useState('');
   const [q, setQ] = useState('');
+  const [capText, setCapText] = useState('');
+  const [asgFilter, setAsgFilter] = useState('pending');
+  const [notice, setNotice] = useState('');
   const [work, setWork] = useState<Assignment[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [rules, setRules] = useState<ScheduleRule[]>([]);
@@ -156,6 +159,33 @@ export function PageMaterials({ boot, nav }: { boot: Boot; nav: Nav }) {
       setBusy(false);
     }
   }
+
+  const notify = (msg: string) => {
+    setNotice(msg);
+    window.setTimeout(() => setNotice(''), 3000);
+  };
+
+  async function capSend() {
+    const v = capText.trim();
+    if (!v || busy) return;
+    setBusy(true);
+    try {
+      await api.createMaterial({ title: v.slice(0, 18), body: v, category: 'note', source: 'user' });
+      setCapText('');
+      await load();
+      setError('');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const filteredWork = useMemo(() => {
+    if (asgFilter === 'all') return work;
+    if (asgFilter === 'pending') return work.filter((a) => a.status === 'pending' || a.status === 'planned');
+    return work.filter((a) => a.status === asgFilter);
+  }, [work, asgFilter]);
 
   const canvasRef = useRef<HTMLInputElement>(null);
   const icsRef = useRef<HTMLInputElement>(null);
@@ -323,6 +353,30 @@ export function PageMaterials({ boot, nav }: { boot: Boot; nav: Nav }) {
         <h1 className="lc-sechead-title">{t('materials.title')}</h1>
         <p className="lc-sechead-sub">{t('materials.subtitle')}</p>
       </div>
+
+      {/* ── 顶部随手记（常驻） ── */}
+      <div className="lc-capture">
+        <textarea rows={1} placeholder={t('materials.capPh')} value={capText}
+          onChange={(e) => setCapText(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void capSend(); } }} />
+        <div className="lc-cap-actions">
+          <button className="lc-cap-cam" onClick={() => notify(t('materials.capCamSoon'))}><Icon name="camera" size={16} /> {t('materials.capCamera')}</button>
+          <div style={{ flex: 1 }} />
+          <button className="lc-send-btn" disabled={!capText.trim() || busy} aria-label={t('materials.capCamera')} onClick={() => void capSend()}><Icon name="arrowUp" size={17} /></button>
+        </div>
+      </div>
+      <div className="lc-chips">
+        <button className="lc-chip" onClick={() => setCapText(t('materials.capHint1'))}>{t('materials.capHint1')}</button>
+        <button className="lc-chip" onClick={() => setCapText(t('materials.capHint2'))}>{t('materials.capHint2')}</button>
+        <button className="lc-chip" onClick={() => setCapText(t('materials.capHint3'))}>{t('materials.capHint3')}</button>
+      </div>
+      <div className="lc-actrow">
+        <button className="lc-btn sec" onClick={() => setTab('sources')}>{t('materials.importCanvas')}</button>
+        <button className="lc-btn sec" onClick={() => setTab('sources')}>{t('materials.importIcs')}</button>
+        <button className="lc-btn sec" onClick={() => notify(t('materials.shotSoon'))}>{t('materials.shot')}</button>
+        <button className="lc-link" onClick={() => setTab('sources')}>{t('materials.allSources')}</button>
+      </div>
+
       <div className="lc-seg" role="tablist">
         {MATERIAL_TABS.map((id) => (
           <button key={id} role="tab" aria-selected={tab === id} className={'lc-segitem' + (tab === id ? ' on' : '')} onClick={() => setTab(id)}>
@@ -382,6 +436,12 @@ export function PageMaterials({ boot, nav }: { boot: Boot; nav: Nav }) {
 
       {tab === 'work' && (
         <>
+          <div className="lc-chips">
+            {(['pending', 'all', 'done', 'dismissed'] as const).map((f) => (
+              <button key={f} className={'lc-chip' + (asgFilter === f ? ' on' : '')} onClick={() => setAsgFilter(f)}>{t(f === 'pending' ? 'materials.asgFilterPending' : f === 'all' ? 'materials.asgFilterAll' : f === 'done' ? 'materials.asgFilterDone' : 'materials.asgFilterDismissed')}</button>
+            ))}
+          </div>
+          <button className="lc-btn sec lc-dashed lc-full" onClick={() => notify(t('materials.asgAddSoon'))}><Icon name="plus" size={16} /> {t('materials.asgAddDeadline')}</button>
           {courses.length > 0 && (
             <div className="lc-chips">
               {courses.map((c) => (
@@ -389,11 +449,11 @@ export function PageMaterials({ boot, nav }: { boot: Boot; nav: Nav }) {
               ))}
             </div>
           )}
-          {work.length === 0 ? (
+          {filteredWork.length === 0 ? (
             <Empty icon="bookOpen" title={t('materials.noWork')} />
           ) : (
             <ul className="lc-list">
-              {work.map((a) => {
+              {filteredWork.map((a) => {
                 const due = dueMeta(a, today, t);
                 const done = a.status === 'done' || a.submitted;
                 const course = courses.find((c) => c.id === a.courseId);
@@ -401,19 +461,25 @@ export function PageMaterials({ boot, nav }: { boot: Boot; nav: Nav }) {
                   <li key={a.id}>
                     <article className={'lc-card' + (done ? ' done' : '')}>
                       <div className="lc-cardmain">
+                        {course?.courseCode && <span className="lc-course-code">{course.courseCode}</span>}
                         <span className="lc-cardtitle">{a.title}</span>
                       </div>
                       <div className="lc-matrow-meta">
-                        {course?.courseCode && <span className="cat">{course.courseCode}</span>}
                         {due && <span className={'lc-due ' + due.cls}>{due.label}</span>}
                         {a.pointsPossible != null && <span>{t('materials.points', { n: a.pointsPossible })}</span>}
                         {a.status === 'planned' && <span>{t('materials.plannedHint')}</span>}
                       </div>
-                      {!done && a.status !== 'dismissed' && (
-                        <div className="lc-actrow">
-                          <button className="lc-btn pri" disabled={busy} onClick={() => void guard(() => api.patchAssignment(a.id, { status: 'done' }))}>{t('materials.markDone')}</button>
-                        </div>
-                      )}
+                      <div className="lc-asg-actions">
+                        {a.status !== 'done' && a.status !== 'dismissed' && (
+                          <>
+                            <button className="lc-asg-icon" aria-label={t('materials.markDone')} disabled={busy} onClick={() => void guard(() => api.patchAssignment(a.id, { status: 'done' }))}><Icon name="check" size={16} /></button>
+                            <button className="lc-asg-icon" aria-label={t('materials.asgDismiss')} disabled={busy} onClick={() => void guard(() => api.patchAssignment(a.id, { status: 'dismissed' }))}><Icon name="eyeOff" size={15} /></button>
+                          </>
+                        )}
+                        {(a.status === 'done' || a.status === 'dismissed') && (
+                          <button className="lc-asg-icon" aria-label={t('materials.asgRestore')} disabled={busy} onClick={() => void guard(() => api.patchAssignment(a.id, { status: 'pending' }))}><Icon name="refreshCw" size={15} /></button>
+                        )}
+                      </div>
                     </article>
                   </li>
                 );
@@ -514,6 +580,12 @@ export function PageMaterials({ boot, nav }: { boot: Boot; nav: Nav }) {
           </>
         )}
       </Sheet>
+
+      {notice && (
+        <div className="lc-toast-wrap" aria-live="polite">
+          <div className="lc-toast"><span>{notice}</span></div>
+        </div>
+      )}
     </div>
   );
 }
