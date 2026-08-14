@@ -8,6 +8,7 @@ import type {
   ToolResultFrame,
 } from '@daycore/core';
 import { foldToolFrames, parseToolEvents, toolLinkTarget } from './companion';
+import { Icon } from './Icon';
 import type { Nav } from './App';
 
 // 陪伴：一个可以走开的对话。
@@ -28,6 +29,20 @@ const POLL_MS = 2500;
 /** ⚠️ A ceiling, so a turn that dies leaves a stopped spinner rather than a
  *  page that polls a dead id until the tab closes. */
 const POLL_MAX = 120;
+
+// 原型 TOOL_ICON：工具 → 图标（design-ui/page-companion.jsx）。
+const TOOL_ICON: Record<string, string> = {
+  get_weather: 'sun',
+  web_search: 'search',
+  list_upcoming: 'listChecks',
+  plan_add: 'calendarPlus',
+  plan_update: 'calendarDays',
+  plan_remove: 'trash',
+  rule_upsert: 'repeat',
+  rule_remove: 'repeat',
+  memory_add: 'brain',
+  memory_remove: 'brain',
+};
 
 function ToolCard({
   tool,
@@ -59,6 +74,7 @@ function ToolCard({
   if (!result?.ok) {
     return (
       <div className="lc-tool is-fail">
+        <Icon name="x" size={15} />
         <span>{t('companion.toolFailed', { name })}</span>
       </div>
     );
@@ -78,6 +94,7 @@ function ToolCard({
 
   return (
     <div className={'lc-tool' + (undone ? ' is-undone' : ' is-ok')}>
+      <Icon name={TOOL_ICON[tool] || 'sparkles'} size={15} />
       <span className="lc-toolsum">{result.summary || name}</span>
       {undone ? (
         <span className="lc-toolundone">{t('companion.undone')}</span>
@@ -134,7 +151,7 @@ function DecisionCard({
   return (
     <div className={'lc-decision' + (live ? '' : ' is-done')}>
       <div className="lc-dechead">
-        <span className="lc-decicon" aria-hidden="true">?</span>
+        <span className="lc-decicon"><Icon name="messageCircle" size={15} /></span>
         <span className="lc-dectitle">{ev.title}</span>
       </div>
       {ev.summary && <p className="lc-decsum">{ev.summary}</p>}
@@ -164,7 +181,7 @@ function DecisionCard({
               disabled={!text.trim()}
               onClick={() => text.trim() && void respond('', text.trim())}
             >
-              ↑
+              <Icon name="arrowUp" size={15} />
             </button>
           </div>
           <p className="lc-dechint">{t('companion.decisionTimeoutHint')}</p>
@@ -285,7 +302,7 @@ export function PageCompanion({ boot, nav }: { boot: Boot; nav: Nav }) {
     <div className="lc-page lc-chat">
       <div className="lc-row" style={{ justifyContent: 'flex-end', padding: 0 }}>
         <button className="lc-btn sec" onClick={() => void newThread()}>
-          {t('companion.newThread')}
+          <Icon name="plus" size={16} /> {t('companion.newThread')}
         </button>
       </div>
 
@@ -364,8 +381,8 @@ export function PageCompanion({ boot, nav }: { boot: Boot; nav: Nav }) {
           aria-label={t('companion.placeholder')}
           disabled={busy || pendingDecision}
         />
-        <button className="lc-btn pri" type="submit" disabled={busy || pendingDecision || !draft.trim()}>
-          {t('companion.send')}
+        <button className="lc-btn pri" type="submit" disabled={busy || pendingDecision || !draft.trim()} aria-label={t('companion.send')}>
+          <Icon name="arrowUp" size={18} />
         </button>
       </form>
     </div>

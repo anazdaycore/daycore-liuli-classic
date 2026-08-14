@@ -1,11 +1,12 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import * as api from '@daycore/core';
 import type { Boot, ChannelBinding, CustomTheme, MemoryFact, SessionPrefs, User } from '@daycore/core';
-import { applyTheme as applyThemeVars } from './theme';
+import { applyTheme as applyThemeVars, applyThemeObject } from './theme';
+import { Icon } from './Icon';
 
-// 设置：这一份安装的所有旋钮。分组行结构 + 主题工作室，对齐原型 page-settings.jsx。
+// 设置：这一份安装的所有旋钮。分组行结构 + 主题工作室（预览条 + 右键/长按菜单），
+// 对齐原型 page-settings.jsx + settings-theme.jsx。
 
-// ⚠️ Exported for the same reason as MATERIAL_TABS — see src/locales.test.ts.
 export const CARE_SWITCHES: (keyof SessionPrefs)[] = [
   'morningBrief',
   'eveningReview',
@@ -17,13 +18,13 @@ export const CARE_SWITCHES: (keyof SessionPrefs)[] = [
 ];
 
 const CARE_ICONS: Record<string, string> = {
-  morningBrief: '☀️',
-  eveningReview: '🌙',
-  deadlineAlerts: '🔔',
-  rollingReplan: '🔄',
-  gapSuggestions: '✨',
-  doNotDisturb: '🙈',
-  autoPlan: '⚡',
+  morningBrief: 'sun',
+  eveningReview: 'moon',
+  deadlineAlerts: 'bell',
+  rollingReplan: 'refreshCw',
+  gapSuggestions: 'sparkles',
+  doNotDisturb: 'eyeOff',
+  autoPlan: 'zap',
 };
 
 const BUILTIN_SWATCH: Record<string, [string, string, string]> = {
@@ -33,6 +34,8 @@ const BUILTIN_SWATCH: Record<string, [string, string, string]> = {
   nature: ['#4ade80', '#dcfce7', '#bbf7d0'],
 };
 
+interface ChannelInfo { name: string; label: string; available: boolean; }
+
 function swatchFor(th: CustomTheme): { primary: string; start: string; end: string } {
   return {
     primary: th.variables['--primary'] || '#888',
@@ -41,25 +44,45 @@ function swatchFor(th: CustomTheme): { primary: string; start: string; end: stri
   };
 }
 
+function Sheet({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: ReactNode }) {
+  if (!open) return null;
+  return (
+    <div className="lc-sheet-backdrop" onClick={onClose}>
+      <div className="lc-sheet" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+        <div className="lc-sheet-head">
+          <h2 className="lc-sheet-title">{title}</h2>
+          <button className="lc-sheet-close" onClick={onClose} aria-label="×">×</button>
+        </div>
+        <div className="lc-sheet-body">{children}</div>
+      </div>
+    </div>
+  );
+}
+
 export function PageSettings({ boot }: { boot: Boot }) {
   const t = boot.catalog.t;
   const [prefs, setPrefs] = useState<SessionPrefs | null>(null);
   const [facts, setFacts] = useState<MemoryFact[]>([]);
   const [themes, setThemes] = useState<CustomTheme[]>([]);
   const [builtin, setBuiltin] = useState<string[]>([]);
+  const [channels, setChannels] = useState<ChannelInfo[]>([]);
   const [bindings, setBindings] = useState<ChannelBinding[]>([]);
   const [bindToken, setBindToken] = useState('');
   const [user, setUser] = useState<User | null>(null);
   const [name, setName] = useState(boot.session.assistantName ?? '');
-  const [persona, setPersona] = useState('');
+  // ⚠️ core 的 Session 类型还没补 personaPrompt 字段，后端 GET 已回带 —— 用窄断言读。
+  const [persona, setPersona] = useState((boot.session as { personaPrompt?: string }).personaPrompt ?? '');
   const [activeTheme, setActiveTheme] = useState(boot.session.currentTheme ?? 'sky');
   const [themeDesc, setThemeDesc] = useState('');
-  const [themeName, setThemeName] = useState('');
-  const [generated, setGenerated] = useState<Record<string, string> | null>(null);
+  const [preview, setPreview] = useState<{ variables: Record<string, string>; name: string } | null>(null);
+  const [menu, setMenu] = useState<{ theme: CustomTheme; x: number; y: number } | null>(null);
+  const [rename, setRename] = useState<CustomTheme | null>(null);
+  const [renameVal, setRenameVal] = useState('');
   const [newFact, setNewFact] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [backend, setBackend] = useState(() => api.backendBase());
+  const longPress = useRef<number | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -74,6 +97,7 @@ export function PageSettings({ boot }: { boot: Boot }) {
       setFacts(m.facts ?? []);
       setThemes(th.themes ?? []);
       setBuiltin(th.builtin ?? []);
+      setChannels(ch.channels ?? []);
       setBindings(ch.bindings ?? []);
       setUser(meRes.user);
       setError('');
@@ -85,6 +109,14 @@ export function PageSettings({ boot }: { boot: Boot }) {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (!menu) return;
+    const close = () => setMenu(null);
+    window.addEventListener('click', close);
+    window.addEventListener('scroll', close, true);
+    return () => { window.removeEventListener('click', close); window.removeEventListener('scroll', close, true); };
+  }, [menu]);
 
   async function guard(run: () => Promise<unknown>) {
     setBusy(true);
@@ -114,8 +146,9 @@ export function PageSettings({ boot }: { boot: Boot }) {
     try {
       const res = await api.generateTheme(themeDesc.trim());
       if (res.variables && Object.keys(res.variables).length > 0) {
-        setGenerated(res.variables);
-        setThemeName(themeDesc.trim().slice(0, 24));
+        const name = themeDesc.trim().slice(0, 24);
+        setPreview({ variables: res.variables, name });
+        applyThemeObject({ dark: false, base: 'sky', variables: res.variables });
       } else {
         setError(String(res.message ?? res.error ?? ''));
       }
@@ -126,14 +159,19 @@ export function PageSettings({ boot }: { boot: Boot }) {
     }
   }
 
-  async function saveGenerated() {
-    if (!generated) return;
+  function cancelPreview() {
+    setPreview(null);
+    applyThemeVars(activeTheme, themes);
+  }
+
+  async function savePreview() {
+    if (!preview) return;
     setBusy(true);
     try {
-      const th = await api.saveTheme({ name: themeName.trim() || 'custom', variables: generated });
+      const th = await api.saveTheme({ name: preview.name || 'custom', variables: preview.variables });
       applyThemeVars(th.id, [th]);
       setActiveTheme(th.id);
-      setGenerated(null);
+      setPreview(null);
       setThemeDesc('');
       await load();
       setError('');
@@ -161,12 +199,48 @@ export function PageSettings({ boot }: { boot: Boot }) {
     }
   }
 
+  async function saveRename() {
+    if (!rename || !renameVal.trim()) return;
+    setBusy(true);
+    try {
+      await api.patchTheme(rename.id, { name: renameVal.trim() });
+      setRename(null);
+      await load();
+      setError('');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function bind(channel: string) {
+    setBusy(true);
+    try {
+      const r = await api.bindChannel(channel);
+      setBindToken(r.token + ' — ' + r.note);
+      await load();
+      setError('');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function openMenu(e: { clientX: number; clientY: number; preventDefault?: () => void }, th: CustomTheme) {
+    e.preventDefault?.();
+    const x = Math.min(e.clientX, window.innerWidth - 180);
+    const y = Math.min(e.clientY, window.innerHeight - 130);
+    setMenu({ theme: th, x, y });
+  }
+
   const themeCards = (builtin ?? []).map((id) => {
     const sw = BUILTIN_SWATCH[id] ?? ['#888', '#eee', '#ddd'];
-    return { id, name: t(`theme.${id}`), sw, custom: false };
+    return { id, name: t(`theme.${id}`), sw, theme: null as CustomTheme | null };
   }).concat(themes.map((th) => {
     const sw = swatchFor(th);
-    return { id: th.id, name: th.name, sw: [sw.primary, sw.start, sw.end] as [string, string, string], custom: true };
+    return { id: th.id, name: th.name, sw: [sw.primary, sw.start, sw.end] as [string, string, string], theme: th };
   }));
 
   return (
@@ -178,7 +252,7 @@ export function PageSettings({ boot }: { boot: Boot }) {
         <span className="lc-label">{t('settings.group.assistant')}</span>
         <div className="lc-stack">
           <div className="lc-set-row" style={{ cursor: 'default' }}>
-            <span className="lc-set-ic" aria-hidden="true">❤️</span>
+            <span className="lc-set-ic"><Icon name="heart" size={18} /></span>
             <div className="lc-set-main">
               <div className="lc-set-title">{t('settings.assistant')}</div>
               <div className="lc-set-sub">{t('settings.assistantSub')}</div>
@@ -188,7 +262,7 @@ export function PageSettings({ boot }: { boot: Boot }) {
               aria-label={t('settings.assistant')} />
           </div>
           <div className="lc-card">
-            <div className="lc-set-title"><span aria-hidden="true">✨</span> {t('settings.persona')}</div>
+            <div className="lc-set-title lc-row8"><Icon name="sparkles" size={15} /> {t('settings.persona')}</div>
             <p className="lc-set-sub">{t('settings.personaSub')}</p>
             <textarea className="lc-input lc-textarea" rows={4} maxLength={2000} placeholder={t('settings.personaPh')} value={persona}
               onChange={(e) => setPersona(e.target.value)}
@@ -202,7 +276,7 @@ export function PageSettings({ boot }: { boot: Boot }) {
       <section className="lc-set-group">
         <span className="lc-label">{t('settings.language')}</span>
         <div className="lc-set-row" style={{ cursor: 'default' }}>
-          <span className="lc-set-ic" aria-hidden="true">🌐</span>
+          <span className="lc-set-ic"><Icon name="globe" size={18} /></span>
           <div className="lc-set-main">
             <div className="lc-set-title">{t('settings.language')}</div>
             <div className="lc-set-sub">{t('settings.languageSub')}</div>
@@ -221,7 +295,7 @@ export function PageSettings({ boot }: { boot: Boot }) {
         <div className="lc-stack">
           {prefs && CARE_SWITCHES.map((k) => (
             <div key={String(k)} className="lc-set-row" style={{ cursor: 'default' }}>
-              <span className="lc-set-ic" aria-hidden="true">{CARE_ICONS[String(k)]}</span>
+              <span className="lc-set-ic"><Icon name={CARE_ICONS[String(k)] ?? 'sparkles'} size={18} /></span>
               <div className="lc-set-main">
                 <div className="lc-set-title">{t(`settings.pref.${String(k)}`)}</div>
               </div>
@@ -237,40 +311,24 @@ export function PageSettings({ boot }: { boot: Boot }) {
         <span className="lc-label">{t('settings.theme')}</span>
         <div className="lc-theme-grid">
           {themeCards.map((c) => (
-            <button key={c.id} className={'lc-theme-card' + (activeTheme === c.id ? ' on' : '')} onClick={() => applyTheme(c.id)}>
+            <button key={c.id} className={'lc-theme-card' + (activeTheme === c.id ? ' on' : '')} onClick={() => applyTheme(c.id)}
+              onContextMenu={c.theme ? (e) => openMenu(e, c.theme!) : undefined}
+              onTouchStart={c.theme ? (e) => { const t0 = e.touches[0]; if (!t0) return; longPress.current = window.setTimeout(() => openMenu({ clientX: t0.clientX, clientY: t0.clientY }, c.theme!), 550); } : undefined}
+              onTouchEnd={() => { if (longPress.current) clearTimeout(longPress.current); }}
+              onTouchMove={() => { if (longPress.current) clearTimeout(longPress.current); }}>
               <span className="lc-theme-swatch" style={{ background: 'linear-gradient(135deg, ' + c.sw[1] + ', ' + c.sw[2] + ')' }}>
                 <span className="pill" style={{ background: c.sw[0] }} />
               </span>
               <span className="lc-theme-name">{c.name}</span>
-              {activeTheme === c.id && <span className="lc-theme-check">✓</span>}
+              {activeTheme === c.id && <span className="lc-theme-check"><Icon name="check" size={13} /></span>}
             </button>
           ))}
         </div>
-        {themes.length > 0 && (
-          <ul className="lc-list" style={{ marginTop: 10 }}>
-            {themes.map((th) => (
-              <li key={th.id} className="lc-row" style={{ padding: 0 }}>
-                <button className={'lc-segitem' + (activeTheme === th.id ? ' on' : '')} style={{ flex: '0 0 auto' }} onClick={() => applyTheme(th.id)}>{th.name}</button>
-                <button className="lc-btn sec" disabled={busy} onClick={() => void delTheme(th.id)}>{t('common.delete')}</button>
-              </li>
-            ))}
-          </ul>
-        )}
+        {themes.length > 0 && <p className="lc-field-sub" style={{ marginTop: 8 }}>{t('settings.themeHintMenu')}</p>}
         <div className="lc-card" style={{ marginTop: 12 }}>
-          <div className="lc-set-title"><span aria-hidden="true">🪄</span> {t('settings.themeGenerate')}</div>
+          <div className="lc-set-title lc-row8"><Icon name="wand" size={15} /> {t('settings.themeGenerate')}</div>
           <input className="lc-input" placeholder={t('settings.themeGenPh')} value={themeDesc} onChange={(e) => setThemeDesc(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') void genTheme(); }} />
-          {generated ? (
-            <div className="lc-field" style={{ marginTop: 10 }}>
-              <span className="lc-field-label">{t('settings.themeName')}</span>
-              <input className="lc-input" value={themeName} onChange={(e) => setThemeName(e.target.value)} />
-              <div className="lc-sheet-actions" style={{ marginTop: 10 }}>
-                <button className="lc-btn sec" onClick={() => setGenerated(null)}>{t('common.cancel')}</button>
-                <button className="lc-btn pri" disabled={busy} onClick={() => void saveGenerated()}>{t('settings.themeSave')}</button>
-              </div>
-            </div>
-          ) : (
-            <button className="lc-btn pri" disabled={busy || !themeDesc.trim()} onClick={() => void genTheme()}>{t('settings.themeGenerateBtn')}</button>
-          )}
+          <button className="lc-btn pri" disabled={busy || !themeDesc.trim()} onClick={() => void genTheme()}>{t('settings.themeGenerateBtn')}</button>
         </div>
         {boot.deferred.length > 0 && <p className="lc-sub" style={{ marginTop: 8 }}>{t('settings.deferred', { n: boot.deferred.length })}</p>}
       </section>
@@ -281,7 +339,7 @@ export function PageSettings({ boot }: { boot: Boot }) {
         <ul className="lc-list">
           {facts.map((f) => (
             <li key={f.id} className="lc-set-row" style={{ cursor: 'default' }}>
-              <span className="lc-set-ic" aria-hidden="true">🧠</span>
+              <span className="lc-set-ic"><Icon name="brain" size={18} /></span>
               <span className="lc-set-main"><span className="lc-set-title" style={{ fontSize: 14 }}>{f.fact}</span></span>
               <button className="lc-btn sec" disabled={busy} onClick={() => void guard(() => api.deleteMemory(f.id))}>{t('common.delete')}</button>
             </li>
@@ -297,24 +355,30 @@ export function PageSettings({ boot }: { boot: Boot }) {
       {/* ── 通道 ── */}
       <section className="lc-set-group">
         <span className="lc-label">{t('settings.channels')}</span>
-        {bindings.length === 0 ? (
+        {channels.length === 0 ? (
           <p className="lc-sub">{t('settings.noChannel')}</p>
         ) : (
-          <ul className="lc-list">
-            {bindings.map((b) => (
-              <li key={b.id} className="lc-set-row" style={{ cursor: 'default' }}>
-                <span className="lc-set-ic" aria-hidden="true">💬</span>
-                <span className="lc-set-main"><span className="lc-set-title">{b.channel}</span></span>
-                <button className="lc-btn sec" disabled={busy} onClick={() => void guard(() => api.unbindChannel(b.channel))}>{t('settings.unbind')}</button>
-              </li>
-            ))}
-          </ul>
+          <div className="lc-stack">
+            {channels.map((ch) => {
+              const bound = bindings.find((b) => b.channel === ch.name);
+              return (
+                <div key={ch.name} className="lc-set-row" style={{ cursor: 'default' }}>
+                  <span className="lc-set-ic"><Icon name="messageCircle" size={18} /></span>
+                  <div className="lc-set-main">
+                    <div className="lc-set-title">{ch.label}</div>
+                    <div className="lc-set-sub">{bound ? (bound.externalId || t('settings.channelBound')) : t('settings.channelUnbound')}</div>
+                  </div>
+                  {bound ? (
+                    <button className="lc-btn sec" disabled={busy} onClick={() => void guard(() => api.unbindChannel(ch.name))}>{t('settings.unbind')}</button>
+                  ) : (
+                    <button className="lc-btn sec" disabled={busy || !ch.available} onClick={() => void bind(ch.name)}>{t('settings.bind')}</button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         )}
-        <button className="lc-btn sec" style={{ marginTop: 8 }} disabled={busy}
-          onClick={() => void api.bindChannel('onebot').then((r) => setBindToken(r.token + ' — ' + r.note)).catch((e) => setError(e instanceof Error ? e.message : String(e)))}>
-          {t('settings.bind')}
-        </button>
-        {bindToken && <p className="lc-sub" style={{ marginTop: 6 }}>{bindToken}</p>}
+        {bindToken && <div className="lc-card" style={{ marginTop: 10 }}><p className="lc-sub" style={{ wordBreak: 'break-all' }}>{bindToken}</p></div>}
       </section>
 
       {/* ── 关于 ── */}
@@ -326,6 +390,33 @@ export function PageSettings({ boot }: { boot: Boot }) {
         <input className="lc-input" style={{ marginTop: 8 }} value={backend} onChange={(e) => setBackend(e.target.value)} placeholder={t('setting.sameOrigin')} aria-label={t('settings.backend')} />
         <button className="lc-btn sec" style={{ marginTop: 8 }} onClick={() => { api.setBackendBase(backend); location.reload(); }}>{t('common.save')}</button>
       </div>
+
+      {/* 预览条 + 上下文菜单 + 重命名 */}
+      {preview && (
+        <div className="lc-preview-bar">
+          <Icon name="palette" size={18} />
+          <span className="lc-preview-name">{preview.name}</span>
+          <button className="lc-preview-btn" onClick={cancelPreview}>{t('common.cancel')}</button>
+          <button className="lc-preview-btn primary" disabled={busy} onClick={() => void savePreview()}>{t('settings.themeSave')}</button>
+        </div>
+      )}
+      {menu && (
+        <div className="lc-ctx-menu" style={{ left: menu.x, top: menu.y }}>
+          <button className="lc-ctx-item" onClick={() => { setRename(menu.theme); setRenameVal(menu.theme.name); setMenu(null); }}>
+            <Icon name="pencil" size={15} /> {t('settings.themeRename')}
+          </button>
+          <button className="lc-ctx-item danger" onClick={() => { const th = menu.theme; setMenu(null); void delTheme(th.id); }}>
+            <Icon name="trash" size={15} /> {t('common.delete')}
+          </button>
+        </div>
+      )}
+      <Sheet open={!!rename} onClose={() => setRename(null)} title={t('settings.themeRename')}>
+        <input className="lc-input" value={renameVal} onChange={(e) => setRenameVal(e.target.value)} />
+        <div className="lc-sheet-actions">
+          <button className="lc-btn sec" onClick={() => setRename(null)}>{t('common.cancel')}</button>
+          <button className="lc-btn pri" disabled={!renameVal.trim() || busy} onClick={() => void saveRename()}>{t('common.save')}</button>
+        </div>
+      </Sheet>
     </div>
   );
 }

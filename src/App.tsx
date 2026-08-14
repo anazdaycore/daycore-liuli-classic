@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import * as api from '@daycore/core';
 import type { Boot } from '@daycore/core';
 import { applyTheme } from './theme';
+import { Icon } from './Icon';
 import { useStore } from './store';
 import { PageToday } from './PageToday';
 import { PageMaterials } from './PageMaterials';
@@ -28,13 +29,13 @@ function greetSuffix(h: number): string {
   return 'night';
 }
 
-// 用 emoji 作图标：无图标库依赖，语义等价于原型的 DcIcons SVG。
+// 原型 DcIcons 的 24px 描边图标（design-ui/icons.js），导航与账户位。
 const ICONS: Record<PageId, string> = {
-  today: '☀️',
-  materials: '📚',
-  companion: '💬',
-  mood: '🌙',
-  settings: '⚙️',
+  today: 'sun',
+  materials: 'layers',
+  companion: 'chat',
+  mood: 'smile',
+  settings: 'settings',
 };
 
 export function App({ boot }: { boot: Boot }) {
@@ -82,7 +83,7 @@ export function App({ boot }: { boot: Boot }) {
         aria-current={page === id ? 'page' : undefined}
         onClick={() => go(id)}
       >
-        <span className="lc-navicon" aria-hidden="true">{ICONS[id]}</span>
+        <span className="lc-navicon"><Icon name={ICONS[id]} size={22} /></span>
         <span className="lc-navlabel">{t(`nav.${id}`)}</span>
         {n > 0 && (
           <span className="lc-badge" aria-label={t('nav.waiting', { n })}>{n > 9 ? '9+' : n}</span>
@@ -97,7 +98,7 @@ export function App({ boot }: { boot: Boot }) {
         <div className="lc-rail-logo"><span className="dot" aria-hidden="true" />{t('app.name')}</div>
         <nav className="lc-rail-nav" aria-label={t('nav.label')}>{navItems}</nav>
         <div className="lc-rail-user">
-          <span className="lc-rail-user-avatar" aria-hidden="true">?</span>
+          <span className="lc-rail-user-avatar"><Icon name="user" size={18} /></span>
           <span className="lc-rail-user-meta">
             <span className="name">{boot.session.assistantName || t('app.name')}</span>
             <span className="sub">{t('app.subtitle')}</span>

@@ -29,16 +29,26 @@ export function customThemeBase(t: { dark: boolean; base?: string }): string {
  *   - 内置：data-theme 指向 id 本身；
  *   - 认不出来的 id（后端比这份界面新）：回落到 sky，而不是挂着空主题。
  */
-export function applyTheme(id: string, themes: CustomTheme[]): void {
+/**
+ * 把一套「还没落库」的候选变量写到 :root —— 主题工作室的实时预览用。与
+ * applyTheme 的差别只在没有 id，底座直接由 dark/base 决定。
+ */
+export function applyThemeObject(t: { dark: boolean; base?: string; variables: Record<string, string> }): void {
   const root = document.documentElement;
   const props = Array.from(root.style);
   for (const p of props) if (p.startsWith('--')) root.style.removeProperty(p);
+  root.setAttribute('data-theme', customThemeBase(t));
+  for (const [k, v] of Object.entries(t.variables)) root.style.setProperty(k, v);
+}
 
+export function applyTheme(id: string, themes: CustomTheme[]): void {
   const custom = themes.find((th) => th.id === id);
   if (custom) {
-    root.setAttribute('data-theme', customThemeBase(custom));
-    for (const [k, v] of Object.entries(custom.variables)) root.style.setProperty(k, v);
+    applyThemeObject(custom);
     return;
   }
+  const root = document.documentElement;
+  const props = Array.from(root.style);
+  for (const p of props) if (p.startsWith('--')) root.style.removeProperty(p);
   root.setAttribute('data-theme', (BUILTIN_THEMES as readonly string[]).includes(id) ? id : 'sky');
 }

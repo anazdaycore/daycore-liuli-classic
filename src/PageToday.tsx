@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import * as api from '@daycore/core';
 import type { Assignment, Boot, ScheduleRule, TimeBlock } from '@daycore/core';
 import type { Store } from './store';
+import { Icon } from './Icon';
 import { addDays, dayDiff, inRange, monthGrid, pickRange, presetRange, toDate, weekOf, type PlanPreset, type Range } from './days';
 import type { Nav } from './App';
 
@@ -84,9 +85,9 @@ function Calendar({ month, onMonth, value, range, onPick, min, badges, locale, t
   return (
     <div className="lc-cal">
       <div className="lc-calhead">
-        <button className="lc-step" onClick={() => onMonth(prevMonth(month))} aria-label={t('today.prevMonth')}>‹</button>
+        <button className="lc-step" onClick={() => onMonth(prevMonth(month))} aria-label={t('today.prevMonth')}><Icon name="chevronLeft" size={16} /></button>
         <span className="lc-caltitle">{fmtMonth(month, locale)}</span>
-        <button className="lc-step" onClick={() => onMonth(nextMonth(month))} aria-label={t('today.nextMonth')}>›</button>
+        <button className="lc-step" onClick={() => onMonth(nextMonth(month))} aria-label={t('today.nextMonth')}><Icon name="chevronRight" size={16} /></button>
       </div>
       <div className="lc-cal-grid lc-cal-heads">
         {heads.map((h, i) => <span key={i} className="lc-calheadcell">{h}</span>)}
@@ -536,7 +537,7 @@ function ManualAddSheet({ open, onClose, date, store, t, locale }: {
           <div className="lc-list">
             {cands.map((c, i) => (
               <button key={c.block.id || i} className={'lc-card lc-cand' + (c.checked ? ' on' : '')} onClick={() => setCands(cands.map((x, j) => (j === i ? { ...x, checked: !x.checked } : x)))}>
-                <span className="lc-candcheck" aria-hidden="true">{c.checked ? '✓' : ''}</span>
+                <span className="lc-candcheck">{c.checked ? <Icon name="check" size={13} /> : null}</span>
                 <span className="lc-candbody">
                   <span className="lc-cardtitle">{c.block.title}</span>
                   <span className="lc-sub">
@@ -607,7 +608,7 @@ export function PageToday({ boot, store, nav }: { boot: Boot; store: Store; nav:
     <div className="lc-today-grid">
       <div className="lc-today-main">
         <div className="lc-strip" role="group" aria-label={t('today.week')}>
-          <button className="lc-step" aria-label={t('today.prevWeek')} onClick={() => store.setDate(addDays(store.date, -7))}>‹</button>
+          <button className="lc-step" aria-label={t('today.prevWeek')} onClick={() => store.setDate(addDays(store.date, -7))}><Icon name="chevronLeft" size={16} /></button>
           <div className="lc-week-days">
             {weekOf(store.date).map((d, i) => {
               const cell = store.week[i];
@@ -620,7 +621,7 @@ export function PageToday({ boot, store, nav }: { boot: Boot; store: Store; nav:
               );
             })}
           </div>
-          <button className="lc-step" aria-label={t('today.nextWeek')} onClick={() => store.setDate(addDays(store.date, 7))}>›</button>
+          <button className="lc-step" aria-label={t('today.nextWeek')} onClick={() => store.setDate(addDays(store.date, 7))}><Icon name="chevronRight" size={16} /></button>
         </div>
 
         <div className="lc-today-head">
@@ -654,7 +655,7 @@ export function PageToday({ boot, store, nav }: { boot: Boot; store: Store; nav:
         ))}
 
         <button className="lc-hero" onClick={() => setApOpen(true)}>
-          <span className="lc-hero-ic" aria-hidden="true">✦</span>
+          <span className="lc-hero-ic"><Icon name="sparkles" size={22} /></span>
           <span className="lc-hero-body">
             <span className="lc-hero-title">{t('today.autoPlan')}</span>
             <span className="lc-hero-sub">{t('today.autoPlanSub')}</span>
@@ -734,7 +735,7 @@ function BlockRow({ b, store, t, onOpen }: { b: TimeBlock; store: Store; t: Boot
         <div className="lc-cardmain">
           {b.time && <span className="lc-time">{b.time}</span>}
           <span className="lc-cardtitle">{b.title}</span>
-          {b.rule_id && <span className="lc-rulemark" aria-hidden="true">↻</span>}
+          {b.rule_id && <span className="lc-rulemark"><Icon name="repeat" size={14} /></span>}
           {b.lock_level === 'hard' && <span className="lc-tag">{t('block.locked')}</span>}
         </div>
         <div className="lc-cardsub">
