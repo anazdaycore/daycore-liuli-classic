@@ -158,7 +158,7 @@ body {
     margin-top: auto; display: flex; align-items: center; gap: 11px; width: 100%;
     padding: 9px 12px 9px 9px; border: 1px solid var(--rail-border); border-radius: 16px;
     background: color-mix(in srgb, var(--text-primary) 4%, transparent);
-    cursor: pointer; text-align: left; color: var(--text-muted);
+    cursor: pointer; text-align: left; color: var(--text-muted); font: inherit;
   }
   .lc-rail-user:hover { background: color-mix(in srgb, var(--text-primary) 8%, transparent); }
   .lc-rail-user-avatar { width: 34px; height: 34px; border-radius: 50%; background: color-mix(in srgb, var(--primary) 18%, transparent); color: var(--primary); display: flex; align-items: center; justify-content: center; font-weight: 700; flex: none; }
@@ -249,6 +249,13 @@ body {
 .lc-full { width: 100%; }
 .lc-muted { color: var(--text-muted); }
 .lc-center { text-align: center; }
+
+/* ── account sheet ── */
+.lc-account-head { display: flex; align-items: center; gap: 12px; }
+.lc-account-avatar { width: 44px; height: 44px; border-radius: 50%; background: color-mix(in srgb, var(--primary) 18%, transparent); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; flex: none; }
+.lc-account-meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.lc-account-name { font-size: 15px; font-weight: 700; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lc-btn.withicon { display: inline-flex; align-items: center; justify-content: center; gap: 7px; }
 
 /* ── switch ── */
 .lc-switch { position: relative; width: 44px; height: 26px; border-radius: 999px; border: none; cursor: pointer; background: color-mix(in srgb, var(--text-primary) 14%, transparent); transition: background 0.2s; flex-shrink: 0; }

@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import * as api from '@daycore/core';
 import { FAMILY_ID } from './manifest';
-import type { Boot } from '@daycore/core';
+import type { Boot, User } from '@daycore/core';
 import { applyTheme } from './theme';
 import { Icon } from './Icon';
+import { AccountSheet, AuthSheet } from './AuthSheets';
 import { useStore } from './store';
 import { PageToday } from './PageToday';
 import { PageMaterials } from './PageMaterials';
@@ -44,6 +45,9 @@ export function App({ boot }: { boot: Boot }) {
   const store = useStore(boot);
   const [page, setPage] = useState<PageId>('today');
   const [navParams, setNavParams] = useState<Record<string, string>>({});
+  const [user, setUser] = useState<User | null>(null);
+  const [accountOpen, setAccountOpen] = useState(false);
+  const [authOpen, setAuthOpen] = useState(false);
 
   const go: Nav['go'] = (next, params) => {
     setNavParams(params ?? {});
@@ -60,6 +64,21 @@ export function App({ boot }: { boot: Boot }) {
     toastTimer.current = window.setTimeout(() => setToast(''), 3000);
   };
   useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current); }, []);
+
+  // 账户：boot 时 me() 定登录态；登录/登出后往 sessionStorage 写提示，reload 后这次 boot 弹出。
+  useEffect(() => {
+    let live = true;
+    void api.me().then((r) => { if (live) setUser(r.user); }).catch(() => {});
+    return () => { live = false; };
+  }, []);
+
+  useEffect(() => {
+    const msg = sessionStorage.getItem('dc-auth-toast');
+    if (msg) {
+      sessionStorage.removeItem('dc-auth-toast');
+      notify(msg);
+    }
+  }, []);
 
   useEffect(() => {
     let live = true;
@@ -102,18 +121,30 @@ export function App({ boot }: { boot: Boot }) {
     );
   });
 
+  const authed = (u: User) => {
+    setUser(u);
+    sessionStorage.setItem('dc-auth-toast', t('auth.welcome', { name: u.name ?? '' }));
+    location.reload();
+  };
+  const signOut = () => {
+    void api.logout().then(() => {
+      sessionStorage.setItem('dc-auth-toast', t('auth.signedOut'));
+      location.reload();
+    }).catch(() => {});
+  };
+
   return (
     <div className="lc-app">
       <aside className="lc-rail">
         <div className="lc-rail-logo"><span className="dot" aria-hidden="true" />{t('app.name')}</div>
         <nav className="lc-rail-nav" aria-label={t('nav.label')}>{navItems}</nav>
-        <div className="lc-rail-user">
-          <span className="lc-rail-user-avatar"><Icon name="user" size={18} /></span>
+        <button className="lc-rail-user" onClick={() => setAccountOpen(true)}>
+          <span className="lc-rail-user-avatar">{user?.name?.[0] ?? <Icon name="user" size={18} />}</span>
           <span className="lc-rail-user-meta">
-            <span className="name">{boot.session.assistantName || t('app.name')}</span>
-            <span className="sub">{t('app.subtitle')}</span>
+            <span className="name">{user?.name ?? boot.session.assistantName ?? t('app.name')}</span>
+            <span className="sub">{user ? t('auth.synced') : t('app.subtitle')}</span>
           </span>
-        </div>
+        </button>
       </aside>
 
       <header className={'lc-appbar' + (page === 'today' ? ' is-wide' : '')}>
@@ -121,7 +152,7 @@ export function App({ boot }: { boot: Boot }) {
           {page === 'today' && <span className="lc-appbar-greet">{t(`greet.${greetSuffix(new Date().getHours())}`)}</span>}
           <span className="lc-appbar-main">{titles[page]}</span>
         </div>
-        <button className="lc-qbtn" aria-label={t('app.account')} onClick={() => notify(t('app.accountSoon'))}>?</button>
+        <button className="lc-qbtn" aria-label={t('app.account')} onClick={() => setAccountOpen(true)}>?</button>
       </header>
 
       <main className={'lc-main' + (page === 'today' ? ' is-wide' : '')}>
@@ -150,6 +181,21 @@ export function App({ boot }: { boot: Boot }) {
           <div className="lc-toast"><span>{toast}</span></div>
         </div>
       )}
+
+      <AccountSheet
+        open={accountOpen}
+        onClose={() => setAccountOpen(false)}
+        boot={boot}
+        user={user}
+        onOpenAuth={() => { setAccountOpen(false); setAuthOpen(true); }}
+        onLogout={signOut}
+      />
+      <AuthSheet
+        open={authOpen}
+        onClose={() => setAuthOpen(false)}
+        boot={boot}
+        onAuthed={authed}
+      />
     </div>
   );
 }
