@@ -261,7 +261,7 @@
   "today.add.parsing": "正在解析…",
   "today.add.candidates": "要加这几项吗？点一下可以去掉不要的。",
   "today.add.confirm": "加入 {n} 项",
-  "today.autoPlanSub": "把资料、作业和规则排成这一天",
+  "today.autoPlanSub": "汇总课表、作业与规则，一键安排",
   "today.monthJump": "跳到哪天",
   "today.plan.range": "范围",
   "today.plan.range.today": "今天",
@@ -279,11 +279,11 @@
   "today.plan.summary.rules": "{n} 条规则",
   "today.plan.summary.due": "{n} 项临期",
   "today.plan.goImport": "去导入",
-  "today.side.progress": "进度",
-  "today.side.upcoming": "接下来要交的",
-  "today.side.none": "近期没有要交的",
-  "today.side.dueToday": "今天",
-  "today.side.dueTomorrow": "明天",
+  "today.side.progress": "今日进度",
+  "today.side.upcoming": "临期作业",
+  "today.side.none": "近两周没有临期作业",
+  "today.side.dueToday": "今天截止",
+  "today.side.dueTomorrow": "明天截止",
   "today.side.dueIn": "还有 {n} 天",
   "undo.updated": "已改「{title}」",
   "undo.uncompleted": "已恢复「{title}」",
@@ -296,5 +296,6 @@
   "settings.adminSub": "模型、密钥、数据与用户管理（需管理员账号）",
   "settings.adminSoon": "运营台还在路上，先用 ADMIN_TOKEN 调 /api/admin",
   "lang.zh-CN": "中文",
-  "lang.en-US": "EN"
+  "lang.en-US": "EN",
+  "block.fixed": "固定"
 }

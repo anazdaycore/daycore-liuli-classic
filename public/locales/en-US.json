@@ -261,7 +261,7 @@
   "today.add.parsing": "Parsing…",
   "today.add.candidates": "Add these? Tap to drop the ones you do not want.",
   "today.add.confirm": "Add {n}",
-  "today.autoPlanSub": "Turn your material, coursework and rules into a day",
+  "today.autoPlanSub": "Courses, deadlines & routines — arranged in one tap",
   "today.monthJump": "Jump to a date",
   "today.plan.range": "Range",
   "today.plan.range.today": "Today",
@@ -279,11 +279,11 @@
   "today.plan.summary.rules": "{n} rules",
   "today.plan.summary.due": "{n} due",
   "today.plan.goImport": "Go import",
-  "today.side.progress": "Progress",
-  "today.side.upcoming": "Coming due",
-  "today.side.none": "Nothing due soon",
-  "today.side.dueToday": "today",
-  "today.side.dueTomorrow": "tomorrow",
+  "today.side.progress": "Today's progress",
+  "today.side.upcoming": "Due soon",
+  "today.side.none": "Nothing due in the next two weeks",
+  "today.side.dueToday": "due today",
+  "today.side.dueTomorrow": "due tomorrow",
   "today.side.dueIn": "in {n}d",
   "undo.updated": "Changed “{title}”",
   "undo.uncompleted": "Reopened “{title}”",
@@ -296,5 +296,6 @@
   "settings.adminSub": "Models, keys, data & users (admin account required)",
   "settings.adminSoon": "The ops console is still on the way — use ADMIN_TOKEN against /api/admin for now.",
   "lang.zh-CN": "中文",
-  "lang.en-US": "EN"
+  "lang.en-US": "EN",
+  "block.fixed": "Fixed"
 }

@@ -14,7 +14,8 @@ import type { Nav } from './App';
 
 function fmtWeekday(iso: string, locale: string): string {
   // ⚠️ Intl, never a hand-rolled table.
-  return new Intl.DateTimeFormat(locale, { weekday: 'short' }).format(toDate(iso));
+  // ⚠️ narrow：zh 是「一二三四五六日」单字，对齐原型周条。
+  return new Intl.DateTimeFormat(locale, { weekday: 'narrow' }).format(toDate(iso));
 }
 
 function fmtDay(iso: string, locale: string): string {
@@ -27,6 +28,10 @@ function fmtMonth(month: string, locale: string): string {
 
 function fmtShort(iso: string, locale: string): string {
   return new Intl.DateTimeFormat(locale, { month: 'short', day: 'numeric' }).format(toDate(iso));
+}
+
+function fmtNow(locale: string): string {
+  return new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date());
 }
 
 /** 日历表头：周日开头的七个窄名（zh 为「日一二三四五六」）。 */
@@ -622,17 +627,17 @@ export function PageToday({ boot, store, nav }: { boot: Boot; store: Store; nav:
             })}
           </div>
           <button className="lc-step" aria-label={t('today.nextWeek')} onClick={() => store.setDate(addDays(store.date, 7))}><Icon name="chevronRight" size={16} /></button>
+          <button className="lc-step" aria-label={t('today.monthJump')} onClick={() => { setJumpMonth(store.date.slice(0, 7)); setJumpOpen(true); }}><Icon name="calendarDays" size={16} /></button>
         </div>
 
         <div className="lc-today-head">
-          <h1 className="lc-title">{dayLabel(store.date, store.today, locale, t)}</h1>
           <div className="lc-row8">
+            <h1 className="lc-title">{dayLabel(store.date, store.today, locale, t)}</h1>
             {store.date !== store.today && <button className="lc-btn sec" onClick={() => store.setDate(store.today)}>{t('today.backToToday')}</button>}
-            <button className="lc-btn sec" onClick={() => { setJumpMonth(store.date.slice(0, 7)); setJumpOpen(true); }}>{t('today.monthJump')}</button>
           </div>
+          {total > 0 && <span className="lc-progress-pill"><Icon name="checkCircle" size={13} /> {t('today.progress', { done, total })}</span>}
         </div>
 
-        {total > 0 && <p className="lc-sub">{t('today.progress', { done, total })}</p>}
         {store.error && <p className="lc-err">{store.error}</p>}
 
         {store.proposals.map((p) => (
@@ -660,9 +665,10 @@ export function PageToday({ boot, store, nav }: { boot: Boot; store: Store; nav:
             <span className="lc-hero-title">{t('today.autoPlan')}</span>
             <span className="lc-hero-sub">{t('today.autoPlanSub')}</span>
           </span>
+          <Icon name="chevronRight" size={19} />
         </button>
         <div className="lc-actrow">
-          <button className="lc-btn sec" onClick={() => setAddOpen(true)}>{t('today.add')}</button>
+          <button className="lc-btn sec lc-dashed" onClick={() => setAddOpen(true)}><Icon name="plus" size={16} /> {t('today.add')}</button>
         </div>
 
         {total === 0 ? (
@@ -671,11 +677,11 @@ export function PageToday({ boot, store, nav }: { boot: Boot; store: Store; nav:
           <ul className="lc-list">
             {timed.map((b, i) => (
               <li key={b.id}>
-                {nowIndex === i && <div className="lc-now"><span className="lbl">{t('today.now')}</span><span className="line" /></div>}
+                {nowIndex === i && <div className="lc-now"><span className="lbl">{t('today.now')} {fmtNow(locale)}</span><span className="line" /></div>}
                 <BlockRow b={b} store={store} t={t} onOpen={() => setDetail(b)} />
               </li>
             ))}
-            {nowIndex === timed.length && timed.length > 0 && <li><div className="lc-now"><span className="lbl">{t('today.now')}</span><span className="line" /></div></li>}
+            {nowIndex === timed.length && timed.length > 0 && <li><div className="lc-now"><span className="lbl">{t('today.now')} {fmtNow(locale)}</span><span className="line" /></div></li>}
             {floating.length > 0 && <li className="lc-groupsep">{t('today.untimed')}</li>}
             {floating.map((b) => (
               <li key={b.id}><BlockRow b={b} store={store} t={t} onOpen={() => setDetail(b)} /></li>
@@ -730,27 +736,21 @@ export function PageToday({ boot, store, nav }: { boot: Boot; store: Store; nav:
 
 function BlockRow({ b, store, t, onOpen }: { b: TimeBlock; store: Store; t: Boot['catalog']['t']; onOpen: () => void }) {
   return (
-    <article className={'lc-card' + (b.completed ? ' done' : '') + (b.rule_id ? ' rule' : '')}>
-      <button className="lc-cardtap" onClick={onOpen} aria-label={b.title}>
-        <div className="lc-cardmain">
-          {b.time && <span className="lc-time">{b.time}</span>}
-          <span className="lc-cardtitle">{b.title}</span>
-          {b.rule_id && <span className="lc-rulemark"><Icon name="repeat" size={14} /></span>}
-          {b.lock_level === 'hard' && <span className="lc-tag">{t('block.locked')}</span>}
-        </div>
-        <div className="lc-cardsub">
-          <span>{t(`block.type.${b.type}`)}</span>
-          {b.duration_min != null && <span> · {t('block.minutes', { n: b.duration_min })}</span>}
-        </div>
+    <article className={'lc-block' + (b.completed ? ' done' : '') + (b.rule_id ? ' rule' : '')}>
+      <button className="lc-block-tap" onClick={onOpen} aria-label={b.title}>
+        <span className="lc-block-time">{b.time || t('block.noTime')}</span>
+        <span className="lc-block-main">
+          <span className="lc-block-title">{b.title}</span>
+          <span className="lc-block-meta">
+            {b.duration_min != null && <span>{t('block.minutes', { n: b.duration_min })}</span>}
+            {b.rule_id && <span className="lc-rulemark"><Icon name="repeat" size={13} /></span>}
+            {b.time_mode === 'fixed' && <span className="lc-tag">{t('block.fixed')}</span>}
+          </span>
+        </span>
       </button>
-      <div className="lc-actrow">
-        {!b.completed && (
-          <button className="lc-btn pri" disabled={store.busy} onClick={() => void store.complete(b)}>{t('block.complete')}</button>
-        )}
-        <button className="lc-btn sec" disabled={store.busy} onClick={() => void store.remove(b)}>
-          {b.origin === 'rule' || b.rule_id ? t('block.hideToday') : t('block.remove')}
-        </button>
-      </div>
+      <button className={'lc-complete' + (b.completed ? ' on' : '')} aria-label={t('block.complete')} disabled={store.busy} onClick={() => void store.toggleComplete(b)}>
+        <Icon name="check" size={16} />
+      </button>
     </article>
   );
 }

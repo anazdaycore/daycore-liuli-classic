@@ -306,6 +306,23 @@ body {
 .lc-hero-title { font-size: 16px; font-weight: 700; }
 .lc-hero-sub { font-size: 12.5px; opacity: 0.85; margin-top: 2px; }
 .lc-plan-note { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; font-size: 13.5px; line-height: 1.6; color: var(--text-secondary); padding: 12px 14px; border-radius: var(--radius-card); background: color-mix(in srgb, var(--primary) 7%, transparent); margin-bottom: 14px; }
+.lc-progress-pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; color: var(--text-secondary); background: var(--surface); border: 1px solid var(--border); padding: 5px 12px; border-radius: 999px; flex-shrink: 0; }
+.lc-progress-pill svg { color: var(--success); }
+.lc-dashed { border-style: dashed !important; }
+
+.lc-block { display: flex; align-items: center; gap: 12px; padding: 13px 14px; border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--surface); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
+.lc-block.done { opacity: 0.7; }
+.lc-block.done .lc-block-title { text-decoration: line-through; color: var(--text-muted); }
+.lc-block.rule { border-left: 2px solid var(--accent); }
+.lc-block-tap { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; border: 0; background: transparent; padding: 0; text-align: left; cursor: pointer; font: inherit; color: inherit; }
+.lc-block-tap:active { transform: scale(0.985); }
+.lc-block-time { flex: 0 0 52px; font-size: 14px; font-weight: 600; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.lc-block-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.lc-block-title { font-size: 14.5px; font-weight: 600; }
+.lc-block-meta { display: flex; align-items: center; gap: 4px 8px; flex-wrap: wrap; font-size: 12px; color: var(--text-muted); }
+.lc-complete { display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid var(--border); background: transparent; color: var(--text-muted); cursor: pointer; flex-shrink: 0; }
+.lc-complete.on { background: var(--success); border-color: var(--success); color: #fff; }
+
 .lc-cardtap { display: block; width: 100%; border: 0; background: transparent; padding: 0; text-align: left; cursor: pointer; font: inherit; color: inherit; }
 .lc-cardtap:active { transform: scale(0.985); }
 .lc-cardsub { display: flex; gap: 4px; color: var(--text-muted); font-size: 12px; margin-top: 4px; flex-wrap: wrap; }
@@ -484,6 +501,7 @@ body {
   .lc-appbar.is-wide, .lc-main.is-wide { max-width: 1140px; }
   .lc-today-grid { display: grid; grid-template-columns: minmax(0, 1fr) 348px; gap: 32px; align-items: start; }
   .lc-today-main { min-width: 0; }
+  .lc-strip { display: none; }
   .lc-side { display: flex; flex-direction: column; gap: 14px; position: sticky; top: 22px; }
 }
 
