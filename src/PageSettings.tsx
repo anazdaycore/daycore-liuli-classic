@@ -73,10 +73,13 @@ export function PageSettings({ boot }: { boot: Boot }) {
   const [persona, setPersona] = useState(boot.session.personaPrompt ?? '');
   const [activeTheme, setActiveTheme] = useState(boot.session.currentTheme ?? 'sky');
   const [themeDesc, setThemeDesc] = useState('');
-  const [preview, setPreview] = useState<{ variables: Record<string, string>; name: string } | null>(null);
+  const [aiBase, setAiBase] = useState('');
+  const [preview, setPreview] = useState<{ variables: Record<string, string>; name: string; editingId: string | null } | null>(null);
   const [menu, setMenu] = useState<{ theme: CustomTheme; x: number; y: number } | null>(null);
   const [rename, setRename] = useState<CustomTheme | null>(null);
   const [renameVal, setRenameVal] = useState('');
+  const [tweaking, setTweaking] = useState<CustomTheme | null>(null);
+  const [tweakDesc, setTweakDesc] = useState('');
   const [newFact, setNewFact] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -138,16 +141,22 @@ export function PageSettings({ boot }: { boot: Boot }) {
     });
   }
 
-  async function genTheme() {
-    if (!themeDesc.trim()) return;
+  async function genTheme(editingId: string | null = null, desc = themeDesc) {
+    const d = desc.trim();
+    if (!d) return;
     setBusy(true);
     setError('');
     try {
-      const res = await api.generateTheme(themeDesc.trim());
+      // ⚠️ 起手有两种：纯新（带 base）或「AI 改一版」（带 themeId 起手）。
+      const res = editingId
+        ? await api.generateTheme({ description: d, themeId: editingId })
+        : await api.generateTheme({ description: d, base: aiBase || undefined });
       if (res.variables && Object.keys(res.variables).length > 0) {
-        const name = themeDesc.trim().slice(0, 24);
-        setPreview({ variables: res.variables, name });
-        applyThemeObject({ dark: false, base: 'sky', variables: res.variables });
+        const name = d.slice(0, 24);
+        setPreview({ variables: res.variables, name, editingId });
+        // 预览底座：AI 改一版沿用被改主题的 dark/base；纯新用所选 base（无 → sky）。
+        const source = editingId ? themes.find((th) => th.id === editingId) : null;
+        applyThemeObject({ dark: source?.dark ?? false, base: source?.base ?? aiBase, variables: res.variables });
       } else {
         setError(String(res.message ?? res.error ?? ''));
       }
@@ -167,11 +176,20 @@ export function PageSettings({ boot }: { boot: Boot }) {
     if (!preview) return;
     setBusy(true);
     try {
-      const th = await api.saveTheme({ name: preview.name || 'custom', variables: preview.variables });
-      applyThemeVars(th.id, [th]);
-      setActiveTheme(th.id);
+      if (preview.editingId) {
+        // AI 改一版：把生成结果写回原主题（patchTheme 不收 base，底座不变）。
+        await api.patchTheme(preview.editingId, { variables: preview.variables });
+        applyThemeVars(preview.editingId, themes);
+        setActiveTheme(preview.editingId);
+      } else {
+        const th = await api.saveTheme({ name: preview.name || 'custom', base: aiBase || undefined, variables: preview.variables });
+        applyThemeVars(th.id, [th]);
+        setActiveTheme(th.id);
+      }
       setPreview(null);
       setThemeDesc('');
+      setTweaking(null);
+      setTweakDesc('');
       await load();
       setError('');
     } catch (e) {
@@ -327,6 +345,13 @@ export function PageSettings({ boot }: { boot: Boot }) {
         <div className="lc-card" style={{ marginTop: 12 }}>
           <div className="lc-set-title lc-row8"><Icon name="wand" size={15} /> {t('settings.themeGenerate')}</div>
           <input className="lc-input" placeholder={t('settings.themeGenPh')} value={themeDesc} onChange={(e) => setThemeDesc(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') void genTheme(); }} />
+          <div className="lc-chips">
+            <span className="lc-field-sub">{t('settings.aiBase')}</span>
+            <button className={'lc-chip' + (aiBase === '' ? ' on' : '')} onClick={() => setAiBase('')}>{t('settings.aiBaseNone')}</button>
+            {builtin.map((b) => (
+              <button key={b} className={'lc-chip' + (aiBase === b ? ' on' : '')} onClick={() => setAiBase(b)}>{t(`theme.${b}`)}</button>
+            ))}
+          </div>
           <button className="lc-btn pri" disabled={busy || !themeDesc.trim()} onClick={() => void genTheme()}>{t('settings.themeGenerateBtn')}</button>
         </div>
         {boot.deferred.length > 0 && <p className="lc-sub" style={{ marginTop: 8 }}>{t('settings.deferred', { n: boot.deferred.length })}</p>}
@@ -404,6 +429,9 @@ export function PageSettings({ boot }: { boot: Boot }) {
           <button className="lc-ctx-item" onClick={() => { setRename(menu.theme); setRenameVal(menu.theme.name); setMenu(null); }}>
             <Icon name="pencil" size={15} /> {t('settings.themeRename')}
           </button>
+          <button className="lc-ctx-item" onClick={() => { setTweaking(menu.theme); setTweakDesc(''); setMenu(null); }}>
+            <Icon name="wand" size={15} /> {t('settings.themeAiTweak')}
+          </button>
           <button className="lc-ctx-item danger" onClick={() => { const th = menu.theme; setMenu(null); void delTheme(th.id); }}>
             <Icon name="trash" size={15} /> {t('common.delete')}
           </button>
@@ -414,6 +442,14 @@ export function PageSettings({ boot }: { boot: Boot }) {
         <div className="lc-sheet-actions">
           <button className="lc-btn sec" onClick={() => setRename(null)}>{t('common.cancel')}</button>
           <button className="lc-btn pri" disabled={!renameVal.trim() || busy} onClick={() => void saveRename()}>{t('common.save')}</button>
+        </div>
+      </Sheet>
+      <Sheet open={!!tweaking} onClose={() => setTweaking(null)} title={t('settings.themeAiTweak')}>
+        <p className="lc-sub">{tweaking ? tweaking.name : ''}</p>
+        <input className="lc-input" placeholder={t('settings.themeGenPh')} value={tweakDesc} onChange={(e) => setTweakDesc(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') void genTheme(tweaking!.id, tweakDesc); }} />
+        <div className="lc-sheet-actions">
+          <button className="lc-btn sec" onClick={() => setTweaking(null)}>{t('common.cancel')}</button>
+          <button className="lc-btn pri" disabled={!tweakDesc.trim() || busy} onClick={() => tweaking && void genTheme(tweaking.id, tweakDesc)}>{t('settings.themeGenerateBtn')}</button>
         </div>
       </Sheet>
     </div>
