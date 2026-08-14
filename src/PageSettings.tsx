@@ -309,7 +309,7 @@ export function PageSettings({ boot }: { boot: Boot }) {
             <span className="lc-set-title">{t('settings.adminTitle')}</span>
             <span className="lc-set-sub">{t('settings.adminSub')}</span>
           </span>
-          <Icon name="externalLink" size={16} />
+          <Icon name="externalLink" size={16} className="lc-admin-link-ic" />
         </button>
       </section>
 

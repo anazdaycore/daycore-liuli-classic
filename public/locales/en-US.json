@@ -314,5 +314,6 @@
   "materials.asgAddDeadline": "Add a deadline manually",
   "materials.asgAddSoon": "Manual deadline is on the way — import from Canvas or let AI plan it for now.",
   "materials.asgDismiss": "Dismiss",
-  "materials.asgRestore": "Restore"
+  "materials.asgRestore": "Restore",
+  "materials.assignments": "Assignments"
 }

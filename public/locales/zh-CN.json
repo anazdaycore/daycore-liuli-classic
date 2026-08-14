@@ -314,5 +314,6 @@
   "materials.asgAddDeadline": "手动加一条截止",
   "materials.asgAddSoon": "手动加截止还在路上，先用 Canvas 导入或让 AI 排。",
   "materials.asgDismiss": "忽略",
-  "materials.asgRestore": "恢复"
+  "materials.asgRestore": "恢复",
+  "materials.assignments": "作业"
 }

@@ -436,19 +436,15 @@ export function PageMaterials({ boot, nav }: { boot: Boot; nav: Nav }) {
 
       {tab === 'work' && (
         <>
-          <div className="lc-chips">
-            {(['pending', 'all', 'done', 'dismissed'] as const).map((f) => (
-              <button key={f} className={'lc-chip' + (asgFilter === f ? ' on' : '')} onClick={() => setAsgFilter(f)}>{t(f === 'pending' ? 'materials.asgFilterPending' : f === 'all' ? 'materials.asgFilterAll' : f === 'done' ? 'materials.asgFilterDone' : 'materials.asgFilterDismissed')}</button>
-            ))}
-          </div>
-          <button className="lc-btn sec lc-dashed lc-full" onClick={() => notify(t('materials.asgAddSoon'))}><Icon name="plus" size={16} /> {t('materials.asgAddDeadline')}</button>
-          {courses.length > 0 && (
+          <div className="lc-row" style={{ padding: 0, flexWrap: 'wrap' }}>
+            <h3 className="lc-cardtitle" style={{ margin: 0 }}>{t('materials.assignments')}</h3>
             <div className="lc-chips">
-              {courses.map((c) => (
-                <span key={c.id} className="lc-chip">{c.courseCode || c.name}</span>
+              {(['pending', 'all', 'done', 'dismissed'] as const).map((f) => (
+                <button key={f} className={'lc-chip' + (asgFilter === f ? ' on' : '')} onClick={() => setAsgFilter(f)}>{t(f === 'pending' ? 'materials.asgFilterPending' : f === 'all' ? 'materials.asgFilterAll' : f === 'done' ? 'materials.asgFilterDone' : 'materials.asgFilterDismissed')}</button>
               ))}
             </div>
-          )}
+          </div>
+          <button className="lc-btn sec lc-dashed lc-full" onClick={() => notify(t('materials.asgAddSoon'))}><Icon name="plus" size={16} /> {t('materials.asgAddDeadline')}</button>
           {filteredWork.length === 0 ? (
             <Empty icon="bookOpen" title={t('materials.noWork')} />
           ) : (

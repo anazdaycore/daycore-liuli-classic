@@ -470,8 +470,9 @@ body {
 .lc-stack-12 { display: flex; flex-direction: column; gap: 12px; }
 .lc-set-row { display: flex; align-items: center; gap: 14px; padding: 14px 16px; cursor: pointer; transition: background 0.15s; border-radius: var(--radius-card); background: var(--surface); border: 1px solid var(--border); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
 .lc-set-row:hover { background: var(--surface-hover); }
+.lc-set-row > svg { color: var(--text-muted); flex-shrink: 0; margin-left: auto; }
 .lc-set-ic { display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 12px; color: var(--primary); background: color-mix(in srgb, var(--primary) 11%, transparent); flex-shrink: 0; }
-.lc-set-main { flex: 1; min-width: 0; }
+.lc-set-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .lc-set-title { font-size: 14.5px; font-weight: 600; }
 .lc-set-sub { font-size: 12.5px; color: var(--text-muted); margin-top: 2px; }
 .lc-theme-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
