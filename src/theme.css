@@ -78,6 +78,9 @@ body {
 
 .lc-app { display: flex; flex-direction: column; min-height: 100dvh; }
 
+.lc-page { display: flex; flex-direction: column; gap: 14px; animation: lc-rise 0.32s ease-out; }
+@keyframes lc-rise { from { opacity: 0; transform: translateY(8px); } }
+
 .lc-main { flex: 1; width: 100%; max-width: 560px; margin: 0 auto; padding: 0 20px calc(84px + env(safe-area-inset-bottom)); }
 
 /* ── appbar ── */
@@ -264,6 +267,7 @@ body {
 .lc-calhead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
 .lc-caltitle { font-weight: 700; font-size: 16px; }
 .lc-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.lc-cal-heads { margin-bottom: 4px; }
 .lc-calheadcell { text-align: center; font-size: 11.5px; color: var(--text-muted); padding: 4px 0; }
 .lc-cell { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; aspect-ratio: 1; border: none; background: none; border-radius: 12px; font-size: 14.5px; font-weight: 500; color: var(--text-primary); cursor: pointer; transition: background 0.15s; }
 .lc-cell:hover { background: var(--surface-hover); }
@@ -411,7 +415,7 @@ body {
 .lc-side { display: none; }
 .lc-sidecard { padding: 16px; border-radius: 20px; background: var(--rail); border: 1px solid var(--border); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); display: flex; flex-direction: column; gap: 8px; }
 .lc-sidehead { display: flex; align-items: center; gap: 7px; font-size: 13.5px; font-weight: 700; color: var(--text-primary); margin-bottom: 10px; }
-.lc-sidehead .num { margin-left: auto; font-weight: 600; color: var(--text-muted); }
+.lc-sidehead .num, .lc-sidenum { margin-left: auto; font-weight: 600; color: var(--text-muted); }
 .lc-bar { height: 6px; border-radius: 999px; background: color-mix(in srgb, var(--primary) 14%, transparent); overflow: hidden; }
 .lc-bar i { display: block; height: 100%; border-radius: 999px; background: var(--primary); transition: width 0.3s; }
 .lc-sideempty { font-size: 12.5px; color: var(--text-muted); margin: 0; }

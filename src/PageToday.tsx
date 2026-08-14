@@ -608,16 +608,18 @@ export function PageToday({ boot, store, nav }: { boot: Boot; store: Store; nav:
       <div className="lc-today-main">
         <div className="lc-strip" role="group" aria-label={t('today.week')}>
           <button className="lc-step" aria-label={t('today.prevWeek')} onClick={() => store.setDate(addDays(store.date, -7))}>‹</button>
-          {weekOf(store.date).map((d, i) => {
-            const cell = store.week[i];
-            return (
-              <button key={d} className={'lc-day' + (d === store.date ? ' on' : '') + (d === store.today ? ' today' : '')} onClick={() => store.setDate(d)} aria-current={d === store.date ? 'date' : undefined}>
-                <span className="lc-dayname">{fmtWeekday(d, locale)}</span>
-                <span className="lc-daynum">{Number(d.slice(8))}</span>
-                <span className={'lc-daydot' + (cell && !cell.empty && cell.total > 0 ? (cell.done === cell.total ? ' full' : ' some') : '')} />
-              </button>
-            );
-          })}
+          <div className="lc-week-days">
+            {weekOf(store.date).map((d, i) => {
+              const cell = store.week[i];
+              return (
+                <button key={d} className={'lc-day' + (d === store.date ? ' on' : '') + (d === store.today ? ' today' : '')} onClick={() => store.setDate(d)} aria-current={d === store.date ? 'date' : undefined}>
+                  <span className="lc-dayname">{fmtWeekday(d, locale)}</span>
+                  <span className="lc-daynum">{Number(d.slice(8))}</span>
+                  <span className={'lc-daydot' + (cell && !cell.empty && cell.total > 0 ? (cell.done === cell.total ? ' full' : ' some') : '')} />
+                </button>
+              );
+            })}
+          </div>
           <button className="lc-step" aria-label={t('today.nextWeek')} onClick={() => store.setDate(addDays(store.date, 7))}>›</button>
         </div>
 
@@ -668,11 +670,11 @@ export function PageToday({ boot, store, nav }: { boot: Boot; store: Store; nav:
           <ul className="lc-list">
             {timed.map((b, i) => (
               <li key={b.id}>
-                {nowIndex === i && <div className="lc-now">{t('today.now')}</div>}
+                {nowIndex === i && <div className="lc-now"><span className="lbl">{t('today.now')}</span><span className="line" /></div>}
                 <BlockRow b={b} store={store} t={t} onOpen={() => setDetail(b)} />
               </li>
             ))}
-            {nowIndex === timed.length && timed.length > 0 && <li><div className="lc-now">{t('today.now')}</div></li>}
+            {nowIndex === timed.length && timed.length > 0 && <li><div className="lc-now"><span className="lbl">{t('today.now')}</span><span className="line" /></div></li>}
             {floating.length > 0 && <li className="lc-groupsep">{t('today.untimed')}</li>}
             {floating.map((b) => (
               <li key={b.id}><BlockRow b={b} store={store} t={t} onOpen={() => setDetail(b)} /></li>
