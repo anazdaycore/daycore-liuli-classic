@@ -52,6 +52,18 @@ const DEFS: Record<string, IconDef> = {
   pencil: { d: 'M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z|m15 5 4 4' },
   user: { d: 'M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2', extra: [C(12, 7, 4)] },
   inbox: { d: 'M22 12h-6l-2 3h-4l-2-3H2|M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z' },
+  // 资料类别（后端 materialCategories().icon 的取值，逐个映射）
+  notebookPen: { d: 'M13.4 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7.6|M2 6h4|M2 10h4|M2 14h4|M2 18h4|M18.4 2.6a2.17 2.17 0 0 1 3 3L16 11l-4 1 1-4z' },
+  utensils: { d: 'M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2|M7 2v20|M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7' },
+  heartPulse: { d: 'M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7z|M3.22 12H9.5l.5-1 2 4.5 2-7 1.5 3.5h5.27' },
+  graduationCap: { d: 'M21.42 10.92a1 1 0 0 0 0-1.84l-8.58-3.91a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0z|M22 10v6|M6 12.5V16a6 3 0 0 0 12 0v-3.5' },
+  plane: { d: 'M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z' },
+  wallet: { d: 'M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2|M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4' },
+  dumbbell: { d: 'm6.5 6.5 11 11|m21 21-1-1|m3 3 1 1|m18 22 4-4|m2 6 4-4|m3 10 7-7|m14 21 7-7' },
+  lightbulb: { d: 'M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1.3.5 2.6 1.5 3.5.8.8 1.3 1.5 1.5 2.5|M9 18h6|M10 22h4' },
+  shoppingBag: { d: 'M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z|M3 6h18|M16 10a4 4 0 0 1-8 0' },
+  film: { d: 'M7 3v18|M17 3v18|M3 7.5h4|M3 16.5h4|M17 7.5h4|M17 16.5h4|M3 12h18', extra: [R(3, 3, 18, 18, 2)] },
+  bookOpen: { d: 'M12 7v14|M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z' },
 };
 
 function buildHtml(def: IconDef): string {
@@ -78,6 +90,7 @@ export function Icon({ name, size = 20, className }: { name: string; size?: numb
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
+      pointerEvents="none"
       className={className}
       dangerouslySetInnerHTML={{ __html: HTML[name] ?? '' }}
     />
