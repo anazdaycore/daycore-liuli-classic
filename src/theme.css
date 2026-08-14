@@ -201,6 +201,9 @@ body {
 .lc-input:focus { outline: none; border-color: var(--primary); }
 .lc-input::placeholder { color: var(--text-muted); }
 .lc-input.time { flex: 0 0 120px; }
+/* 单行输入：.lc-field 是纵向 flex，.lc-input 的 flex-basis 200px 会按「高度」解释成
+   约 200px 的大盒子。input（非 textarea）在表单列里钉回单行 44px。 */
+.lc-field input.lc-input { flex: none; width: 100%; height: 44px; }
 
 /* ── cards ── */
 .lc-card {

@@ -72,7 +72,7 @@ export function AuthSheet({ open, onClose, boot, onAuthed }: { open: boolean; on
   );
 }
 
-export function AccountSheet({ open, onClose, boot, user, onOpenAuth, onLogout }: { open: boolean; onClose: () => void; boot: Boot; user: User | null; onOpenAuth: () => void; onLogout: () => void }) {
+export function AccountSheet({ open, onClose, boot, user, onOpenAuth, onLogout, onHelp }: { open: boolean; onClose: () => void; boot: Boot; user: User | null; onOpenAuth: () => void; onLogout: () => void; onHelp: () => void }) {
   const t = boot.catalog.t;
   return (
     <Sheet open={open} onClose={onClose} title={t('auth.account')}>
@@ -88,6 +88,7 @@ export function AccountSheet({ open, onClose, boot, user, onOpenAuth, onLogout }
       ) : (
         <button className="lc-btn pri lc-full" onClick={onOpenAuth}>{t('auth.signin')} / {t('auth.signup')}</button>
       )}
+      <button className="lc-link lc-center" onClick={onHelp}>{t('auth.help')}</button>
     </Sheet>
   );
 }

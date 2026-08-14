@@ -189,6 +189,7 @@ export function App({ boot }: { boot: Boot }) {
         user={user}
         onOpenAuth={() => { setAccountOpen(false); setAuthOpen(true); }}
         onLogout={signOut}
+        onHelp={() => notify(t('auth.about'))}
       />
       <AuthSheet
         open={authOpen}

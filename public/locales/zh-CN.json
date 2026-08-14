@@ -28,6 +28,8 @@
   "auth.signout": "退出登录",
   "auth.welcome": "欢迎回来，{name}",
   "auth.signedOut": "已退出，回到匿名会话",
+  "auth.help": "关于 琉璃初版",
+  "auth.about": "琉璃初版 · 页面制 —— Daycore 的学生日程与陪伴助手。",
   "greet.morning": "早上好",
   "greet.noon": "中午好",
   "greet.afternoon": "下午好",

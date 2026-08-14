@@ -28,6 +28,8 @@
   "auth.signout": "Sign out",
   "auth.welcome": "Welcome back, {name}",
   "auth.signedOut": "Signed out — back to anonymous",
+  "auth.help": "About Liuli Classic",
+  "auth.about": "Liuli Classic · pages — Daycore's student planner and companion.",
   "greet.morning": "Good morning",
   "greet.noon": "Good afternoon",
   "greet.afternoon": "Good afternoon",
