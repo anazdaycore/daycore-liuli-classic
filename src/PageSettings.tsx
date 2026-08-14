@@ -70,8 +70,7 @@ export function PageSettings({ boot }: { boot: Boot }) {
   const [bindToken, setBindToken] = useState('');
   const [user, setUser] = useState<User | null>(null);
   const [name, setName] = useState(boot.session.assistantName ?? '');
-  // ⚠️ core 的 Session 类型还没补 personaPrompt 字段，后端 GET 已回带 —— 用窄断言读。
-  const [persona, setPersona] = useState((boot.session as { personaPrompt?: string }).personaPrompt ?? '');
+  const [persona, setPersona] = useState(boot.session.personaPrompt ?? '');
   const [activeTheme, setActiveTheme] = useState(boot.session.currentTheme ?? 'sky');
   const [themeDesc, setThemeDesc] = useState('');
   const [preview, setPreview] = useState<{ variables: Record<string, string>; name: string } | null>(null);
