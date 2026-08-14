@@ -205,6 +205,7 @@
   "setting.notDaycore": "Something answered, but it does not look like Daycore: ",
   "setting.language": "Language",
   "setting.langHint": "Once connected, this becomes the list of languages that deployment can actually render.",
+  "setting.demoHint": "Demo data: press \"Try it\" (leave the address empty), then open the console with F12, paste the demo token, and reload to see the sample data.",
   "boot.connecting": "Connecting…",
   "boot.unreachable": "Cannot reach the backend.",
   "boot.tooOld": "That backend (API v{version}) is older than this build; the two do not fit.",

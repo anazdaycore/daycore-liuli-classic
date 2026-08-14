@@ -206,6 +206,7 @@
   "setting.notDaycore": "对方回了，但不像是 Daycore：",
   "setting.language": "语言",
   "setting.langHint": "连上之后，这里会换成那个部署真正能显示的语言。",
+  "setting.demoHint": "演示数据：点「试一下」（地址留空）进入后，按 F12 打开控制台贴入演示 token，刷新即可看到示例数据。",
   "boot.connecting": "正在连…",
   "boot.unreachable": "连不上后端。",
   "boot.tooOld": "这个后端（API v{version}）比这份界面旧，两边对不上。",

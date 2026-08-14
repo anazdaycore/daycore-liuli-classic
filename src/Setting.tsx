@@ -115,6 +115,7 @@ export function Setting({
             </select>
           </div>
           <p className="lc-sub">{t('setting.langHint')}</p>
+          <p className="lc-sub">{t('setting.demoHint')}</p>
         </div>
       </main>
     </div>

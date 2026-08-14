@@ -25,9 +25,23 @@ const SHIPPED = ['zh-CN', 'en-US'];
 // one or the other — either the setting screen is untranslatable, or the
 // language list is hardcoded.
 function Root() {
-  const [phase, setPhase] = useState<'setting' | 'booting' | 'up' | 'failed'>(
-    isFirstRun() ? 'setting' : 'booting',
-  );
+  // ⚠️ Evidence of a configured install skips this screen: a session token in
+  // storage (the shared cross-frontend contract from core's http.ts — a
+  // same-origin demo hands the token out directly) or a dc_sid cookie (the
+  // demo hub sets one on every response, so an opened page already IS a
+  // session). Sending either person to "which backend?" strands a working
+  // install on the setting screen; boot instead and let a bad credential fail
+  // visibly, where "edit address" stays one tap away.
+  const [phase, setPhase] = useState<'setting' | 'booting' | 'up' | 'failed'>(() => {
+    if (!isFirstRun()) return 'booting';
+    try {
+      if (localStorage.getItem('daycore.sessionToken')) return 'booting';
+      if (/(?:^|;\s*)dc_sid=/.test(document.cookie)) return 'booting';
+    } catch {
+      /* storage unreadable — asking is the safe fallback */
+    }
+    return 'setting';
+  });
   const [boot, setBoot] = useState<Boot | null>(null);
   const [bootCat, setBootCat] = useState<Catalog | null>(null);
   const [err, setErr] = useState('');
