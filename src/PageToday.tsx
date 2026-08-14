@@ -249,86 +249,6 @@ function BlockDetailSheet({ block, onClose, store, t, onEditRule }: {
     </Sheet>
   );
 }
-
-// ── edit a rule (rule-sourced block's "edit the rule") ──
-function RuleEditSheet({ ruleId, onClose, t }: { ruleId: string | null; onClose: () => void; t: Boot['catalog']['t'] }) {
-  const [rule, setRule] = useState<ScheduleRule | null>(null);
-  const [draft, setDraft] = useState<{ title: string; type: BlockType; time: string; duration: string } | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    if (!ruleId) return;
-    let live = true;
-    void api.rules().then((r) => {
-      const found = (r.rules ?? []).find((x) => x.id === ruleId) ?? null;
-      if (!live) return;
-      setRule(found);
-      setDraft(found ? { title: found.title, type: found.type, time: found.time ?? '', duration: found.duration_min != null ? String(found.duration_min) : '' } : null);
-      setError('');
-    }).catch((e) => { if (live) setError(e instanceof Error ? e.message : String(e)); });
-    return () => { live = false; };
-  }, [ruleId]);
-
-  async function save() {
-    if (!rule || !draft) return;
-    setBusy(true);
-    try {
-      await api.patchRule(rule.id, {
-        title: draft.title.trim() || rule.title,
-        type: draft.type,
-        time: draft.time || null,
-        duration_min: draft.duration ? Number(draft.duration) : null,
-      });
-      onClose();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <Sheet open={!!ruleId} onClose={onClose} title={t('rule.editTitle')}>
-      {error && <p className="lc-err">{error}</p>}
-      {!draft ? (
-        <p className="lc-sub">{t('rule.loading')}</p>
-      ) : (
-        <>
-          <label className="lc-field">
-            <span className="lc-field-label">{t('block.name')}</span>
-            <input className="lc-input" value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} />
-          </label>
-          <div className="lc-field">
-            <span className="lc-field-label">{t('block.typeLabel')}</span>
-            <div className="lc-seg">
-              {BLOCK_TYPES.map((ty) => (
-                <button key={ty} className={'lc-segitem' + (draft.type === ty ? ' on' : '')} onClick={() => setDraft({ ...draft, type: ty })}>
-                  {t(`block.type.${ty}`)}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="lc-grid2">
-            <label className="lc-field">
-              <span className="lc-field-label">{t('block.timeLabel')}</span>
-              <input className="lc-input" type="time" value={draft.time} onChange={(e) => setDraft({ ...draft, time: e.target.value })} />
-            </label>
-            <label className="lc-field">
-              <span className="lc-field-label">{t('block.durationLabel')}</span>
-              <input className="lc-input" type="number" min="5" step="5" value={draft.duration} onChange={(e) => setDraft({ ...draft, duration: e.target.value })} />
-            </label>
-          </div>
-          <div className="lc-sheet-actions">
-            <button className="lc-btn sec" onClick={onClose}>{t('common.cancel')}</button>
-            <button className="lc-btn pri" disabled={busy} onClick={() => void save()}>{t('common.save')}</button>
-          </div>
-        </>
-      )}
-    </Sheet>
-  );
-}
-
 // ── auto-plan ──
 function AutoPlanSheet({ open, onClose, store, t, locale, rulesCount, dueCount, facts, goMaterials }: {
   open: boolean;
@@ -576,7 +496,6 @@ export function PageToday({ boot, store, nav }: { boot: Boot; store: Store; nav:
   const [jumpMonth, setJumpMonth] = useState(() => store.date.slice(0, 7));
   const [sideMonth, setSideMonth] = useState(() => store.date.slice(0, 7));
   const [detail, setDetail] = useState<TimeBlock | null>(null);
-  const [editRuleId, setEditRuleId] = useState<string | null>(null);
   const [upcoming, setUpcoming] = useState<Assignment[]>([]);
   const [rules, setRules] = useState<ScheduleRule[]>([]);
   const [facts, setFacts] = useState<string[]>([]);
@@ -722,8 +641,7 @@ export function PageToday({ boot, store, nav }: { boot: Boot; store: Store; nav:
 
       <AutoPlanSheet open={apOpen} onClose={() => setApOpen(false)} store={store} t={t} locale={locale} rulesCount={rules.filter((r) => r.active).length} dueCount={upcoming.length} facts={facts} goMaterials={() => nav.go('materials')} />
       <ManualAddSheet open={addOpen} onClose={() => setAddOpen(false)} date={store.date} store={store} t={t} locale={locale} />
-      <BlockDetailSheet block={detail} onClose={() => setDetail(null)} store={store} t={t} onEditRule={(id) => setEditRuleId(id)} />
-      <RuleEditSheet ruleId={editRuleId} onClose={() => setEditRuleId(null)} t={t} />
+      <BlockDetailSheet block={detail} onClose={() => setDetail(null)} store={store} t={t} onEditRule={() => { setDetail(null); nav.go('materials', { rules: '1' }); }} />
       <Sheet open={jumpOpen} onClose={() => setJumpOpen(false)} title={t('today.monthJump')}>
         <Calendar month={jumpMonth} onMonth={setJumpMonth} value={store.date} onPick={(d) => { store.setDate(d); setJumpOpen(false); }} badges={jumpBadges} locale={locale} t={t} />
         <div className="lc-sheet-actions">

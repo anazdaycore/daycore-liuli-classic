@@ -2,13 +2,14 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import * as api from '@daycore/core';
 import type { Assignment, Boot, Course, Material, MaterialCategory, ScheduleRule } from '@daycore/core';
 import { Icon } from './Icon';
+import type { Nav } from './App';
 import { dayDiff } from './days';
 import { describeRule } from './rules';
 
 // 资料：记下来的东西、还欠着的作业、数据源、每周都会发生的事。
 // 对照原型 page-materials.jsx + materials-parts.jsx + capture-flow.jsx 加厚。
 
-export const MATERIAL_TABS = ['notes', 'work', 'sources', 'rules'] as const;
+export const MATERIAL_TABS = ['notes', 'work', 'sources'] as const;
 type Tab = (typeof MATERIAL_TABS)[number];
 
 // 后端 materialCategories().icon 取值 → 本端图标名（design-ui 同类 path）。
@@ -72,11 +73,12 @@ function Empty({ icon, title, desc }: { icon: string; title: string; desc?: stri
   );
 }
 
-export function PageMaterials({ boot }: { boot: Boot }) {
+export function PageMaterials({ boot, nav }: { boot: Boot; nav: Nav }) {
   const t = boot.catalog.t;
   const locale = boot.catalog.locale;
   const today = api.todayIso();
   const [tab, setTab] = useState<Tab>('notes');
+  const [rulesMode, setRulesMode] = useState(false);
   const [materials, setMaterials] = useState<Material[]>([]);
   const [cats, setCats] = useState<MaterialCategory[]>([]);
   const [cat, setCat] = useState('');
@@ -84,6 +86,7 @@ export function PageMaterials({ boot }: { boot: Boot }) {
   const [work, setWork] = useState<Assignment[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [rules, setRules] = useState<ScheduleRule[]>([]);
+  const [detail, setDetail] = useState<Material | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [addTitle, setAddTitle] = useState('');
   const [addBody, setAddBody] = useState('');
@@ -169,6 +172,11 @@ export function PageMaterials({ boot }: { boot: Boot }) {
   useEffect(() => {
     if (tab === 'sources') void loadToken();
   }, [tab]);
+
+  // 原型规则入口：BlockDetailSheet「编辑规则」→ nav.go('materials',{rules,editRule})。
+  useEffect(() => {
+    if (nav.params.rules) setRulesMode(true);
+  }, [nav.params]);
 
   async function rotateToken() {
     setBusy(true);
@@ -264,7 +272,7 @@ export function PageMaterials({ boot }: { boot: Boot }) {
   }
 
   const enabledCats = cats.filter((c) => c.enabled);
-  const catName = (id: string) => cats.find((c) => c.id === id)?.name ?? id;
+  const catName = (id: string) => { const v = t(`cat.${id}`); return v === `cat.${id}` ? (cats.find((c) => c.id === id)?.name ?? id) : v; };
   const feed = useMemo(() => {
     const ql = q.trim().toLowerCase();
     if (!ql) return materials;
@@ -275,6 +283,40 @@ export function PageMaterials({ boot }: { boot: Boot }) {
     );
   }, [materials, q]);
 
+  if (rulesMode) {
+    return (
+      <div className="lc-page">
+        <div className="lc-row" style={{ justifyContent: 'flex-start', gap: 10 }}>
+          <button className="lc-btn sec" onClick={() => setRulesMode(false)}><Icon name="chevronLeft" size={16} /> {t('common.back')}</button>
+          <h2 className="lc-title">{t('materials.rulesTitle')}</h2>
+        </div>
+        {rules.length === 0 ? (
+          <Empty icon="repeat" title={t('materials.noRules')} />
+        ) : (
+          <ul className="lc-list">
+            {rules.map((r) => {
+              const parts = describeRule(r, locale);
+              return (
+                <li key={r.id}>
+                  <article className={'lc-card' + (r.active ? '' : ' done')}>
+                    <div className="lc-cardmain">
+                      <span className="lc-cardtitle">{r.title}</span>
+                      {r.time && <span className="lc-time">{r.time}</span>}
+                    </div>
+                    <p className="lc-sub">{parts.map((p) => <span key={p.key} className="lc-part">{t(p.key, p.vars)}</span>)}</p>
+                    <div className="lc-actrow">
+                      <button className="lc-btn sec" disabled={busy} onClick={() => void guard(() => api.patchRule(r.id, { active: !r.active }))}>{t(r.active ? 'rules.pause' : 'rules.resume')}</button>
+                      <button className="lc-btn sec" disabled={busy} onClick={() => void guard(() => api.deleteRule(r.id))}>{t('common.delete')}</button>
+                    </div>
+                  </article>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+    );
+  }
   return (
     <div className="lc-page">
       <div className="lc-sechead">
@@ -302,7 +344,7 @@ export function PageMaterials({ boot }: { boot: Boot }) {
             <button className={'lc-chip' + (cat === '' ? ' on' : '')} onClick={() => setCat('')}>{t('materials.allCategories')}</button>
             {enabledCats.map((c) => (
               <button key={c.id} className={'lc-chip' + (cat === c.id ? ' on' : '')} onClick={() => setCat(c.id)}>
-                {c.name}{' ' + materials.filter((m) => m.category === c.id).length}
+                {catName(c.id)}{' ' + materials.filter((m) => m.category === c.id).length}
               </button>
             ))}
           </div>
@@ -317,19 +359,19 @@ export function PageMaterials({ boot }: { boot: Boot }) {
                 const c = cats.find((x) => x.id === m.category);
                 return (
                   <li key={m.id}>
-                    <article className="lc-card lc-matrow">
+                    <button className="lc-matrow" onClick={() => setDetail(m)}>
                       <span className="lc-cat-ic" style={c ? { background: 'color-mix(in srgb, var(--primary) 11%, transparent)' } : undefined}><Icon name={c ? catIcon(c) : 'notebookPen'} size={17} /></span>
-                      <div className="lc-matrow-main">
-                        <div className="lc-matrow-title">{m.title}</div>
-                        {(m.body || m.summary) && <div className="lc-matrow-sum">{m.summary || m.body}</div>}
-                        <div className="lc-matrow-meta">
+                      <span className="lc-matrow-main">
+                        <span className="lc-matrow-title">{m.title}</span>
+                        {(m.body || m.summary) && <span className="lc-matrow-sum">{m.summary || m.body}</span>}
+                        <span className="lc-matrow-meta">
                           <span className="cat">{catName(m.category)}</span>
                           {KNOWN_SOURCE.has(m.source) && m.source !== 'user' && <span>{t(`materials.source.${m.source}`)}</span>}
                           <span>{relWhen(m.created_at, today, locale, t)}</span>
-                        </div>
-                      </div>
-                      <button className="lc-btn sec" disabled={busy} onClick={() => void guard(() => api.deleteMaterial(m.id))}>{t('common.delete')}</button>
-                    </article>
+                        </span>
+                      </span>
+                      <Icon name="chevronRight" size={17} />
+                    </button>
                   </li>
                 );
               })}
@@ -412,37 +454,6 @@ export function PageMaterials({ boot }: { boot: Boot }) {
         </div>
       )}
 
-      {tab === 'rules' && (
-        <>
-          {rules.length === 0 ? (
-            <Empty icon="repeat" title={t('materials.noRules')} />
-          ) : (
-            <ul className="lc-list">
-              {rules.map((r) => {
-                const parts = describeRule(r, locale);
-                return (
-                  <li key={r.id}>
-                    <article className={'lc-card' + (r.active ? '' : ' done')}>
-                      <div className="lc-cardmain">
-                        <span className="lc-cardtitle">{r.title}</span>
-                        {r.time && <span className="lc-time">{r.time}</span>}
-                      </div>
-                      <p className="lc-sub">
-                        {parts.map((p) => <span key={p.key} className="lc-part">{t(p.key, p.vars)}</span>)}
-                      </p>
-                      <div className="lc-actrow">
-                        <button className="lc-btn sec" disabled={busy} onClick={() => void guard(() => api.patchRule(r.id, { active: !r.active }))}>{t(r.active ? 'rules.pause' : 'rules.resume')}</button>
-                        <button className="lc-btn sec" disabled={busy} onClick={() => void guard(() => api.deleteRule(r.id))}>{t('common.delete')}</button>
-                      </div>
-                    </article>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </>
-      )}
-
       <Sheet open={addOpen} onClose={() => setAddOpen(false)} title={t('materials.addOne')}>
         <label className="lc-field">
           <span className="lc-field-label">{t('materials.addTitle')}</span>
@@ -456,7 +467,7 @@ export function PageMaterials({ boot }: { boot: Boot }) {
           <span className="lc-field-label">{t('materials.addCategory')}</span>
           <div className="lc-chips">
             {enabledCats.map((c) => (
-              <button key={c.id} className={'lc-chip' + (addCat === c.id ? ' on' : '')} onClick={() => setAddCat(c.id)}>{c.name}</button>
+              <button key={c.id} className={'lc-chip' + (addCat === c.id ? ' on' : '')} onClick={() => setAddCat(c.id)}>{catName(c.id)}</button>
             ))}
           </div>
         </div>
@@ -485,6 +496,23 @@ export function PageMaterials({ boot }: { boot: Boot }) {
           <button className="lc-btn sec" onClick={() => setTzAsk(null)}>{t('common.cancel')}</button>
           <button className="lc-btn pri" onClick={() => void confirmTz()}>{t('materials.tzConfirm')}</button>
         </div>
+      </Sheet>
+      <Sheet open={!!detail} onClose={() => setDetail(null)} title={t('materials.detailTitle')}>
+        {detail && (
+          <>
+            <div className="lc-cardmain">
+              <span className="lc-cardtitle">{detail.title}</span>
+              <span className="lc-tag">{catName(detail.category)}</span>
+            </div>
+            {detail.body && <p className="lc-sub">{detail.body}</p>}
+            {detail.summary && <p className="lc-sub">{detail.summary}</p>}
+            <p className="lc-field-sub">{relWhen(detail.created_at, today, locale, t)}</p>
+            <div className="lc-sheet-actions">
+              <button className="lc-btn sec" disabled={busy} onClick={() => void guard(() => api.deleteMaterial(detail.id)).then(() => setDetail(null))}>{t('common.delete')}</button>
+              <button className="lc-btn pri" onClick={() => setDetail(null)}>{t('common.save')}</button>
+            </div>
+          </>
+        )}
       </Sheet>
     </div>
   );

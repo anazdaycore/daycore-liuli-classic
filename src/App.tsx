@@ -125,7 +125,7 @@ export function App({ boot }: { boot: Boot }) {
 
       <main className={'lc-main' + (page === 'today' ? ' is-wide' : '')}>
         {page === 'today' && <PageToday boot={boot} store={store} nav={nav} />}
-        {page === 'materials' && <PageMaterials boot={boot} />}
+        {page === 'materials' && <PageMaterials boot={boot} nav={nav} />}
         {page === 'companion' && <PageCompanion boot={boot} nav={nav} />}
         {page === 'mood' && <PageMood boot={boot} />}
         {page === 'settings' && <PageSettings boot={boot} />}
