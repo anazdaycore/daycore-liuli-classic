@@ -262,6 +262,9 @@ export function PageSettings({ boot }: { boot: Boot }) {
 
   return (
     <div className="lc-page">
+      <div className="lc-sechead">
+        <h1 className="lc-sechead-title">{t('nav.settings')}</h1>
+      </div>
       {error && <p className="lc-err">{error}</p>}
 
       {/* ── 助手 ── */}

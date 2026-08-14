@@ -277,6 +277,10 @@ export function PageMaterials({ boot }: { boot: Boot }) {
 
   return (
     <div className="lc-page">
+      <div className="lc-sechead">
+        <h1 className="lc-sechead-title">{t('materials.title')}</h1>
+        <p className="lc-sechead-sub">{t('materials.subtitle')}</p>
+      </div>
       <div className="lc-seg" role="tablist">
         {MATERIAL_TABS.map((id) => (
           <button key={id} role="tab" aria-selected={tab === id} className={'lc-segitem' + (tab === id ? ' on' : '')} onClick={() => setTab(id)}>

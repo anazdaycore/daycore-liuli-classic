@@ -701,7 +701,7 @@ export function PageToday({ boot, store, nav }: { boot: Boot; store: Store; nav:
           ) : (
             <ul className="lc-list">
               {upcoming.slice(0, 5).map((a) => {
-                const dd = dayDiff(a.dueAt!.slice(0, 10), store.today);
+                const dd = dayDiff(store.today, a.dueAt!.slice(0, 10));
                 return (
                   <li key={a.id} className="lc-sidedue">
                     <span className="lc-sidedue-title">{a.title}</span>

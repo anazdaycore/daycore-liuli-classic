@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as api from '@daycore/core';
 import type { Boot } from '@daycore/core';
 import { applyTheme } from './theme';
@@ -50,6 +50,15 @@ export function App({ boot }: { boot: Boot }) {
     window.scrollTo(0, 0);
   };
   const nav: Nav = { go, params: navParams };
+
+  const [toast, setToast] = useState('');
+  const toastTimer = useRef<number | null>(null);
+  const notify = (msg: string) => {
+    setToast(msg);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = window.setTimeout(() => setToast(''), 3000);
+  };
+  useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current); }, []);
 
   useEffect(() => {
     let live = true;
@@ -111,6 +120,7 @@ export function App({ boot }: { boot: Boot }) {
           {page === 'today' && <span className="lc-appbar-greet">{t(`greet.${greetSuffix(new Date().getHours())}`)}</span>}
           <span className="lc-appbar-main">{titles[page]}</span>
         </div>
+        <button className="lc-qbtn" aria-label={t('app.account')} onClick={() => notify(t('app.accountSoon'))}>?</button>
       </header>
 
       <main className={'lc-main' + (page === 'today' ? ' is-wide' : '')}>
@@ -133,6 +143,12 @@ export function App({ boot }: { boot: Boot }) {
           </div>
         )}
       </div>
+
+      {toast && (
+        <div className="lc-toast-wrap" aria-live="polite">
+          <div className="lc-toast"><span>{toast}</span></div>
+        </div>
+      )}
     </div>
   );
 }
