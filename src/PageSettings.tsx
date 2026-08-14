@@ -84,6 +84,13 @@ export function PageSettings({ boot }: { boot: Boot }) {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [backend, setBackend] = useState(() => api.backendBase());
+  const [notice, setNotice] = useState('');
+  const noticeTimer = useRef<number | null>(null);
+  const notify = (msg: string) => {
+    setNotice(msg);
+    if (noticeTimer.current) clearTimeout(noticeTimer.current);
+    noticeTimer.current = window.setTimeout(() => setNotice(''), 3000);
+  };
   const longPress = useRef<number | null>(null);
 
   const load = useCallback(async () => {
@@ -288,8 +295,22 @@ export function PageSettings({ boot }: { boot: Boot }) {
               onChange={(e) => setPersona(e.target.value)}
               onBlur={() => { const v = persona.trim(); if (v) void guard(() => api.patchSettings({ personaPrompt: v })); }}
               aria-label={t('settings.persona')} />
+            <p className="lc-field-sub">{t('settings.personaNote', { n: persona.length })}</p>
           </div>
         </div>
+      </section>
+
+      {/* ── 管理 ── */}
+      <section className="lc-set-group">
+        <span className="lc-label">{t('settings.admin')}</span>
+        <button className="lc-set-row" style={{ width: '100%', textAlign: 'left', font: 'inherit' }} onClick={() => notify(t('settings.adminSoon'))}>
+          <span className="lc-set-ic"><Icon name="key" size={18} /></span>
+          <span className="lc-set-main">
+            <span className="lc-set-title">{t('settings.adminTitle')}</span>
+            <span className="lc-set-sub">{t('settings.adminSub')}</span>
+          </span>
+          <Icon name="externalLink" size={16} />
+        </button>
       </section>
 
       {/* ── 语言 ── */}
@@ -303,7 +324,7 @@ export function PageSettings({ boot }: { boot: Boot }) {
           </div>
           <div className="lc-seg" style={{ flex: 'none', maxWidth: 180 }}>
             {boot.availableLocales.map((l) => (
-              <button key={l} className={'lc-segitem' + (boot.catalog.locale === l ? ' on' : '')} onClick={() => { api.chooseLocale(l); location.reload(); }}>{l}</button>
+              <button key={l} className={'lc-segitem' + (boot.catalog.locale === l ? ' on' : '')} onClick={() => { api.chooseLocale(l); location.reload(); }}>{t(`lang.${l}`)}</button>
             ))}
           </div>
         </div>
@@ -455,6 +476,12 @@ export function PageSettings({ boot }: { boot: Boot }) {
           <button className="lc-btn pri" disabled={!tweakDesc.trim() || busy} onClick={() => tweaking && void genTheme(tweaking.id, tweakDesc)}>{t('settings.themeGenerateBtn')}</button>
         </div>
       </Sheet>
+
+      {notice && (
+        <div className="lc-toast-wrap" aria-live="polite">
+          <div className="lc-toast"><span>{notice}</span></div>
+        </div>
+      )}
     </div>
   );
 }

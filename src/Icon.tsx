@@ -64,6 +64,7 @@ const DEFS: Record<string, IconDef> = {
   shoppingBag: { d: 'M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z|M3 6h18|M16 10a4 4 0 0 1-8 0' },
   film: { d: 'M7 3v18|M17 3v18|M3 7.5h4|M3 16.5h4|M17 7.5h4|M17 16.5h4|M3 12h18', extra: [R(3, 3, 18, 18, 2)] },
   bookOpen: { d: 'M12 7v14|M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z' },
+  externalLink: { d: 'M15 3h6v6|M10 14 21 3|M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6' },
 };
 
 function buildHtml(def: IconDef): string {

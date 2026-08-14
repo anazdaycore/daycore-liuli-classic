@@ -199,6 +199,7 @@ export function PageCompanion({ boot, nav }: { boot: Boot; nav: Nav }) {
   const [current, setCurrent] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState('');
+  const [thOpen, setThOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const stop = useRef(false);
@@ -300,25 +301,14 @@ export function PageCompanion({ boot, nav }: { boot: Boot; nav: Nav }) {
 
   return (
     <div className="lc-page lc-chat">
-      <div className="lc-row" style={{ justifyContent: 'flex-end', padding: 0 }}>
-        <button className="lc-btn sec" onClick={() => void newThread()}>
-          <Icon name="plus" size={16} /> {t('companion.newThread')}
+      <div className="lc-thread-bar">
+        <button className="lc-thread-pill" onClick={() => setThOpen(true)}>
+          <Icon name="messagesSquare" size={15} />
+          <span>{threads.find((th) => th.id === current)?.title || t('companion.untitled')}</span>
+          <Icon name="chevronDown" size={14} />
         </button>
+        <span className="lc-thread-async">{t('companion.asyncNote')}</span>
       </div>
-
-      {threads.length > 1 && (
-        <div className="lc-seg">
-          {threads.map((th) => (
-            <button
-              key={th.id}
-              className={'lc-segitem' + (current === th.id ? ' on' : '')}
-              onClick={() => setCurrent(th.id)}
-            >
-              {th.title || t('companion.untitled')}
-            </button>
-          ))}
-        </div>
-      )}
 
       {error && <p className="lc-err">{error}</p>}
 
@@ -385,6 +375,32 @@ export function PageCompanion({ boot, nav }: { boot: Boot; nav: Nav }) {
           <Icon name="arrowUp" size={18} />
         </button>
       </form>
+
+      {thOpen && (
+        <div className="lc-sheet-backdrop" onClick={() => setThOpen(false)}>
+          <div className="lc-sheet" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+            <div className="lc-sheet-head">
+              <h2 className="lc-sheet-title">{t('companion.threadSwitch')}</h2>
+              <button className="lc-sheet-close" onClick={() => setThOpen(false)} aria-label="×">×</button>
+            </div>
+            <div className="lc-sheet-body">
+              <button className="lc-btn sec" onClick={() => void newThread().then(() => setThOpen(false))}>
+                <Icon name="plus" size={16} /> {t('companion.newThread')}
+              </button>
+              <ul className="lc-list">
+                {threads.map((th) => (
+                  <li key={th.id}>
+                    <button className={'lc-thread-row' + (current === th.id ? ' on' : '')} onClick={() => { setCurrent(th.id); setThOpen(false); }}>
+                      <span className="lc-thread-title">{th.title || t('companion.untitled')}</span>
+                      {current === th.id && <Icon name="check" size={15} />}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
