@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import * as api from '@daycore/core';
+import { FAMILY_ID } from './manifest';
 import type { Boot, ChannelBinding, CustomTheme, MemoryFact, SessionPrefs, User } from '@daycore/core';
 import { applyTheme as applyThemeVars, applyThemeObject } from './theme';
 import { Icon } from './Icon';
@@ -71,7 +72,7 @@ export function PageSettings({ boot }: { boot: Boot }) {
   const [user, setUser] = useState<User | null>(null);
   const [name, setName] = useState(boot.session.assistantName ?? '');
   const [persona, setPersona] = useState(boot.session.personaPrompt ?? '');
-  const [activeTheme, setActiveTheme] = useState(boot.session.currentTheme ?? 'sky');
+  const [activeTheme, setActiveTheme] = useState(api.themeForFamily(boot.session, FAMILY_ID) || 'sky');
   const [themeDesc, setThemeDesc] = useState('');
   const [aiBase, setAiBase] = useState('');
   const [preview, setPreview] = useState<{ variables: Record<string, string>; name: string; editingId: string | null } | null>(null);

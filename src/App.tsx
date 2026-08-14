@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import * as api from '@daycore/core';
+import { FAMILY_ID } from './manifest';
 import type { Boot } from '@daycore/core';
 import { applyTheme } from './theme';
 import { Icon } from './Icon';
@@ -65,13 +66,13 @@ export function App({ boot }: { boot: Boot }) {
     void api
       .themes()
       .then((th) => {
-        if (live) applyTheme(boot.session.currentTheme || 'sky', th.themes ?? []);
+        if (live) applyTheme(api.themeForFamily(boot.session, FAMILY_ID) || 'sky', th.themes ?? []);
       })
       .catch(() => {
         if (live) applyTheme('sky', []);
       });
     return () => { live = false; };
-  }, [boot.session.currentTheme]);
+  }, [boot.session.currentTheme, boot.session.preferences]);
 
   const badges: Partial<Record<PageId, number>> = { today: store.proposals.length };
 

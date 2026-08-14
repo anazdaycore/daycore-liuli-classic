@@ -5,7 +5,7 @@ import * as api from '@daycore/core';
 import { boot as bootUp, bootstrapCatalog, isFirstRun, type Boot, type Catalog } from '@daycore/core';
 import { App } from './App';
 import { Setting } from './Setting';
-import { manifest } from './manifest';
+import { FAMILY_ID, manifest } from './manifest';
 
 // ⚠️ The packs 初版 SHIPS, in public/locales/. Passed in rather than read from
 // @daycore/core, because each of the four frontends ships a different set — a
@@ -60,7 +60,7 @@ function Root() {
         setPhase('up');
         // The theme the session is on. Falls back to the build's default rather
         // than to nothing — an unthemed first paint reads as a broken install.
-        document.documentElement.setAttribute('data-theme', b.session.currentTheme || 'sky');
+        document.documentElement.setAttribute('data-theme', api.themeForFamily(b.session, FAMILY_ID) || 'sky');
       },
       (e) => {
         if (!live) return;
