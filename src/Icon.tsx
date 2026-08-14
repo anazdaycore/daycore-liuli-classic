@@ -52,6 +52,7 @@ const DEFS: Record<string, IconDef> = {
   pencil: { d: 'M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z|m15 5 4 4' },
   user: { d: 'M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2', extra: [C(12, 7, 4)] },
   inbox: { d: 'M22 12h-6l-2 3h-4l-2-3H2|M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z' },
+  key: { d: 'm21 2-9.6 9.6|M15.5 7.5l3 3L22 7l-3-3', extra: [C(7.5, 15.5, 5.5)] }, // 管理控制台卡（原型 page-settings.jsx IC.Key）
   // 资料类别（后端 materialCategories().icon 的取值，逐个映射）
   notebookPen: { d: 'M13.4 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7.6|M2 6h4|M2 10h4|M2 14h4|M2 18h4|M18.4 2.6a2.17 2.17 0 0 1 3 3L16 11l-4 1 1-4z' },
   utensils: { d: 'M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2|M7 2v20|M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7' },
