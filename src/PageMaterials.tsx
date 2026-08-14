@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import * as api from '@daycore/core';
 import type { Assignment, Boot, Course, Material, MaterialCategory, ScheduleRule } from '@daycore/core';
 import { Icon } from './Icon';
@@ -90,6 +90,14 @@ export function PageMaterials({ boot }: { boot: Boot }) {
   const [addCat, setAddCat] = useState('note');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  // 数据源
+  const [token, setToken] = useState('');
+  const [canvasMsg, setCanvasMsg] = useState('');
+  const [icsMsg, setIcsMsg] = useState('');
+  const [icsText, setIcsText] = useState('');
+  const [icsCands, setIcsCands] = useState<{ title: string; time?: string; duration_min?: number; freq?: string }[] | null>(null);
+  const [icsWarnings, setIcsWarnings] = useState<string[]>([]);
+  const [tzAsk, setTzAsk] = useState<{ calendarTimezone: string; sessionTimezone: string; events: number } | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -141,6 +149,115 @@ export function PageMaterials({ boot }: { boot: Boot }) {
       setError('');
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const canvasRef = useRef<HTMLInputElement>(null);
+  const icsRef = useRef<HTMLInputElement>(null);
+
+  async function loadToken() {
+    try {
+      const r = await api.importToken();
+      setToken(r.token ?? '');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  }
+
+  useEffect(() => {
+    if (tab === 'sources') void loadToken();
+  }, [tab]);
+
+  async function rotateToken() {
+    setBusy(true);
+    try {
+      const r = await api.rotateImportToken();
+      setToken(r.token ?? '');
+      setError('');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function canvasFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    setCanvasMsg('');
+    setBusy(true);
+    try {
+      const text = await f.text();
+      const parsed = JSON.parse(text) as { version?: string };
+      if (!parsed.version) { setCanvasMsg(t('materials.canvasBad')); return; }
+      const res = await api.importCanvas(parsed as Parameters<typeof api.importCanvas>[0]) as { courses?: number; assignments?: number };
+      setCanvasMsg(t('materials.canvasDone', { c: res.courses ?? 0, a: res.assignments ?? 0 }));
+      await load();
+    } catch (e) {
+      setCanvasMsg(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+    e.target.value = '';
+  }
+
+  async function icsFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    setIcsMsg('');
+    setBusy(true);
+    try {
+      const text = await f.text();
+      setIcsText(text);
+      const res = await api.importICS(text, { preview: true }) as { rules?: { title: string; time?: string; duration_min?: number; freq?: string }[]; warnings?: string[] };
+      setIcsCands(res.rules ?? []);
+      setIcsWarnings(res.warnings ?? []);
+    } catch (e) {
+      setIcsMsg(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+    e.target.value = '';
+  }
+
+  async function confirmIcs() {
+    if (!icsText) return;
+    setBusy(true);
+    setIcsMsg('');
+    try {
+      await api.importICS(icsText);
+      setIcsCands(null);
+      setIcsText('');
+      setIcsMsg(t('materials.icsDone'));
+      await load();
+    } catch (e) {
+      const err = e as { status?: number; body?: unknown };
+      if (err.status === 409) {
+        const b = err.body as { calendarTimezone?: string; sessionTimezone?: string; events?: number } | null;
+        setTzAsk({ calendarTimezone: b?.calendarTimezone ?? '', sessionTimezone: b?.sessionTimezone ?? '', events: b?.events ?? 0 });
+      } else {
+        setIcsMsg(e instanceof Error ? e.message : String(e));
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function confirmTz() {
+    if (!icsText || !tzAsk) return;
+    setBusy(true);
+    setIcsMsg('');
+    try {
+      await api.importICS(icsText, { timezone: tzAsk.calendarTimezone, tzConfirmed: true });
+      setIcsCands(null);
+      setIcsText('');
+      setTzAsk(null);
+      setIcsMsg(t('materials.icsDone'));
+      await load();
+    } catch (e) {
+      setIcsMsg(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
     }
@@ -267,7 +384,15 @@ export function PageMaterials({ boot }: { boot: Boot }) {
             <div className="lc-mat-body">
               <h3 className="lc-mat-title">{t('materials.canvasTitle')}</h3>
               <p className="lc-mat-desc">{t('materials.canvasDesc')}</p>
-              <p className="lc-sub">{t('materials.importNote')}</p>
+              <div className="lc-token-box">
+                <Icon name="key" size={16} />
+                <span>{token || t('materials.tokenNone')}</span>
+                <button className="lc-btn sec" disabled={busy} onClick={() => void rotateToken()}>{token ? t('materials.tokenRotate') : t('materials.tokenGenerate')}</button>
+              </div>
+              <p className="lc-sub">{t('materials.tokenDesc')}</p>
+              <button className="lc-btn sec" disabled={busy} onClick={() => canvasRef.current?.click()}>{t('materials.canvasUpload')}</button>
+              <input ref={canvasRef} type="file" accept=".json,application/json" hidden onChange={(e) => void canvasFile(e)} />
+              {canvasMsg && <p className="lc-sub">{canvasMsg}</p>}
             </div>
           </article>
           <article className="lc-card lc-mat-card">
@@ -275,7 +400,9 @@ export function PageMaterials({ boot }: { boot: Boot }) {
             <div className="lc-mat-body">
               <h3 className="lc-mat-title">{t('materials.icsTitle')}</h3>
               <p className="lc-mat-desc">{t('materials.icsDesc')}</p>
-              <p className="lc-sub">{t('materials.importNote')}</p>
+              <button className="lc-btn sec" disabled={busy} onClick={() => icsRef.current?.click()}>{t('materials.icsUpload')}</button>
+              <input ref={icsRef} type="file" accept=".ics,text/calendar" hidden onChange={(e) => void icsFile(e)} />
+              {icsMsg && <p className="lc-sub">{icsMsg}</p>}
             </div>
           </article>
         </div>
@@ -332,6 +459,27 @@ export function PageMaterials({ boot }: { boot: Boot }) {
         <div className="lc-sheet-actions">
           <button className="lc-btn sec" onClick={() => setAddOpen(false)}>{t('common.cancel')}</button>
           <button className="lc-btn pri" disabled={!addTitle.trim() || busy} onClick={() => void addOne()}>{t('common.save')}</button>
+        </div>
+      </Sheet>
+      <Sheet open={!!icsCands} onClose={() => setIcsCands(null)} title={t('materials.icsPreview', { n: icsCands?.length ?? 0 })}>
+        {icsWarnings.length > 0 && <p className="lc-sub">{t('materials.icsWarnings', { n: icsWarnings.length })}</p>}
+        <ul className="lc-list">
+          {(icsCands ?? []).slice(0, 20).map((c, i) => (
+            <li key={i} className="lc-card">
+              <div className="lc-cardmain"><span className="lc-cardtitle">{c.title}</span>{c.time && <span className="lc-time">{c.time}</span>}</div>
+            </li>
+          ))}
+        </ul>
+        <div className="lc-sheet-actions">
+          <button className="lc-btn sec" onClick={() => setIcsCands(null)}>{t('common.cancel')}</button>
+          <button className="lc-btn pri" disabled={!icsCands?.length} onClick={() => void confirmIcs()}>{t('materials.icsConfirm', { n: icsCands?.length ?? 0 })}</button>
+        </div>
+      </Sheet>
+      <Sheet open={!!tzAsk} onClose={() => setTzAsk(null)} title={t('materials.tzTitle')}>
+        <p className="lc-sub">{t('materials.tzAsk', { cal: tzAsk?.calendarTimezone ?? '', ses: tzAsk?.sessionTimezone ?? '', n: tzAsk?.events ?? 0 })}</p>
+        <div className="lc-sheet-actions">
+          <button className="lc-btn sec" onClick={() => setTzAsk(null)}>{t('common.cancel')}</button>
+          <button className="lc-btn pri" onClick={() => void confirmTz()}>{t('materials.tzConfirm')}</button>
         </div>
       </Sheet>
     </div>

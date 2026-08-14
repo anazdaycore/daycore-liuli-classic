@@ -344,6 +344,8 @@ body {
 .lc-mat-body { flex: 1; min-width: 0; }
 .lc-mat-title { font-size: 15px; font-weight: 650; margin: 0 0 3px; }
 .lc-mat-desc { font-size: 13px; line-height: 1.55; color: var(--text-secondary); margin: 0 0 10px; }
+.lc-token-box { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 14px; background: color-mix(in srgb, var(--text-primary) 5%, transparent); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; overflow-wrap: anywhere; }
+.lc-token-box span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 
 /* ── companion ── */
 .lc-chat { min-height: calc(100dvh - 156px); }
