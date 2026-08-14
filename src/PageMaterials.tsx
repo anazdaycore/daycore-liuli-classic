@@ -75,10 +75,6 @@ export function PageMaterials({ boot }: { boot: Boot }) {
 
   return (
     <div className="lc-page">
-      <header className="lc-head">
-        <h1 className="lc-title">{t('nav.materials')}</h1>
-      </header>
-
       <div className="lc-seg" role="tablist">
         {MATERIAL_TABS.map((id) => (
           <button

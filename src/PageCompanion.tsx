@@ -283,12 +283,11 @@ export function PageCompanion({ boot, nav }: { boot: Boot; nav: Nav }) {
 
   return (
     <div className="lc-page lc-chat">
-      <header className="lc-head">
-        <h1 className="lc-title">{t('nav.companion')}</h1>
+      <div className="lc-row" style={{ justifyContent: 'flex-end', padding: 0 }}>
         <button className="lc-btn sec" onClick={() => void newThread()}>
           {t('companion.newThread')}
         </button>
-      </header>
+      </div>
 
       {threads.length > 1 && (
         <div className="lc-seg">

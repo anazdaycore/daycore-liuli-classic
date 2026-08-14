@@ -99,10 +99,6 @@ export function PageMood({ boot }: { boot: Boot }) {
 
   return (
     <div className="lc-page">
-      <header className="lc-head">
-        <h1 className="lc-title">{t('nav.mood')}</h1>
-      </header>
-
       {error && <p className="lc-err">{error}</p>}
 
       {/* ⚠️ The grid is rendered from the backend's registry, not from a list
