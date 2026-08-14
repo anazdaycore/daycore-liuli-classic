@@ -30,8 +30,10 @@ function fmtShort(iso: string, locale: string): string {
   return new Intl.DateTimeFormat(locale, { month: 'short', day: 'numeric' }).format(toDate(iso));
 }
 
-function fmtNow(locale: string): string {
-  return new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date());
+function fmtNow(tz: string): string {
+  const m = api.nowMinutesInTZ(tz);
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${p(Math.floor(m / 60))}:${p(m % 60)}`;
 }
 
 /** 日历表头：周日开头的七个窄名（zh 为「日一二三四五六」）。 */
@@ -490,6 +492,7 @@ function ManualAddSheet({ open, onClose, date, store, t, locale }: {
 export function PageToday({ boot, store, nav }: { boot: Boot; store: Store; nav: Nav }) {
   const t = boot.catalog.t;
   const locale = boot.catalog.locale;
+  const TZ = api.sessionTimezone(boot.session);
   const [apOpen, setApOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [jumpOpen, setJumpOpen] = useState(false);
@@ -596,11 +599,11 @@ export function PageToday({ boot, store, nav }: { boot: Boot; store: Store; nav:
           <ul className="lc-list">
             {timed.map((b, i) => (
               <li key={b.id}>
-                {nowIndex === i && <div className="lc-now"><span className="lbl">{t('today.now')} {fmtNow(locale)}</span><span className="line" /></div>}
+                {nowIndex === i && <div className="lc-now"><span className="lbl">{t('today.now')} {fmtNow(TZ)}</span><span className="line" /></div>}
                 <BlockRow b={b} store={store} t={t} onOpen={() => setDetail(b)} />
               </li>
             ))}
-            {nowIndex === timed.length && timed.length > 0 && <li><div className="lc-now"><span className="lbl">{t('today.now')} {fmtNow(locale)}</span><span className="line" /></div></li>}
+            {nowIndex === timed.length && timed.length > 0 && <li><div className="lc-now"><span className="lbl">{t('today.now')} {fmtNow(TZ)}</span><span className="line" /></div></li>}
             {floating.length > 0 && <li className="lc-groupsep">{t('today.untimed')}</li>}
             {floating.map((b) => (
               <li key={b.id}><BlockRow b={b} store={store} t={t} onOpen={() => setDetail(b)} /></li>

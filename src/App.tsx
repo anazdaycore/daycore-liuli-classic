@@ -42,6 +42,7 @@ const ICONS: Record<PageId, string> = {
 
 export function App({ boot }: { boot: Boot }) {
   const t = boot.catalog.t;
+  const TZ = api.sessionTimezone(boot.session);
   const store = useStore(boot);
   const [page, setPage] = useState<PageId>('today');
   const [navParams, setNavParams] = useState<Record<string, string>>({});
@@ -149,7 +150,7 @@ export function App({ boot }: { boot: Boot }) {
 
       <header className={'lc-appbar' + (page === 'today' ? ' is-wide' : '')}>
         <div className="lc-appbar-title">
-          {page === 'today' && <span className="lc-appbar-greet">{t(`greet.${greetSuffix(new Date().getHours())}`)}</span>}
+          {page === 'today' && <span className="lc-appbar-greet">{t(`greet.${greetSuffix(Math.floor(api.nowMinutesInTZ(TZ) / 60))}`)}</span>}
           <span className="lc-appbar-main">{titles[page]}</span>
         </div>
         <button className="lc-qbtn" aria-label={t('app.account')} onClick={() => setAccountOpen(true)}>?</button>

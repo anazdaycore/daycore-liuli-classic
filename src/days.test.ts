@@ -10,7 +10,7 @@ import {
   pickRange,
   presetRange,
   toDate,
-  todayIso,
+  isoOf,
   weekOf,
   weekdayOf,
 } from './days';
@@ -69,10 +69,10 @@ describe('date arithmetic', () => {
     expect(dayDiff('2026-11-01', '2026-11-02')).toBe(1);
   });
 
-  it('derives today from a Date in the local zone', () => {
-    expect(todayIso(new Date(2026, 7, 3, 23, 30))).toBe('2026-08-03');
+  it('formats a Date as zero-padded YYYY-MM-DD', () => {
+    expect(isoOf(new Date(2026, 7, 3, 23, 30))).toBe('2026-08-03');
     // Zero-padding on both fields, which inRange's string compare depends on.
-    expect(todayIso(new Date(2026, 0, 9, 0, 5))).toBe('2026-01-09');
+    expect(isoOf(new Date(2026, 0, 9, 0, 5))).toBe('2026-01-09');
   });
 });
 

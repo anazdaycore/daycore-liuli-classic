@@ -18,8 +18,9 @@ import type { DayPlan, TimeBlock } from '@daycore/core';
 //
 // ⚠️ It looks like it could be shared with 纸屿, and it cannot. See groupDay.
 
-/** Today in the reader's own zone, as YYYY-MM-DD. */
-export function todayIso(now = new Date()): string {
+/** A local Date → YYYY-MM-DD, zero-padded. ⚠️ A pure formatter, NOT "today":
+ *  "today" must come from todayIsoInTZ with the session's zone. */
+export function isoOf(now: Date): string {
   const p = (n: number) => String(n).padStart(2, '0');
   return `${now.getFullYear()}-${p(now.getMonth() + 1)}-${p(now.getDate())}`;
 }
@@ -45,7 +46,7 @@ export function toDate(iso: string): Date {
 export function addDays(iso: string, n: number): string {
   const d = toDate(iso);
   d.setDate(d.getDate() + n);
-  return todayIso(d);
+  return isoOf(d);
 }
 
 /**
@@ -149,10 +150,6 @@ export function foldRange(plans: DayPlan[], from: string, to: string): DayCell[]
 export function toMin(hhmm: string): number {
   const [h = '0', m = '0'] = hhmm.split(':');
   return Number(h) * 60 + Number(m);
-}
-
-export function nowMin(now = new Date()): number {
-  return now.getHours() * 60 + now.getMinutes();
 }
 
 /** A day, split the way a page renders it. */

@@ -76,7 +76,8 @@ function Empty({ icon, title, desc }: { icon: string; title: string; desc?: stri
 export function PageMaterials({ boot, nav }: { boot: Boot; nav: Nav }) {
   const t = boot.catalog.t;
   const locale = boot.catalog.locale;
-  const today = api.todayIso();
+  const TZ = api.sessionTimezone(boot.session);
+  const today = api.todayIsoInTZ(TZ);
   const [tab, setTab] = useState<Tab>('notes');
   const [rulesMode, setRulesMode] = useState(false);
   const [materials, setMaterials] = useState<Material[]>([]);

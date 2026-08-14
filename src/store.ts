@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import * as api from '@daycore/core';
 import { ApiError, type Boot } from '@daycore/core';
-import { foldRange, groupDay, nowMin, todayIso, weekOf, type DayCell, type Grouped } from './days';
+import { foldRange, groupDay, weekOf, type DayCell, type Grouped } from './days';
 
 // 初版's state.
 //
@@ -43,7 +43,8 @@ function refusalOf(e: unknown): PlanRefusal | null {
 
 export function useStore(boot: Boot) {
   const t = boot.catalog.t;
-  const [date, setDate] = useState(() => todayIso());
+  const TZ = api.sessionTimezone(boot.session);
+  const [date, setDate] = useState(() => api.todayIsoInTZ(TZ));
   const [plan, setPlan] = useState<api.DayPlan | null>(null);
   const [week, setWeek] = useState<DayCell[]>([]);
   const [proposals, setProposals] = useState<api.Proposal[]>([]);
@@ -51,11 +52,11 @@ export function useStore(boot: Boot) {
   const [refusal, setRefusal] = useState<PlanRefusal | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const [tick, setTick] = useState(() => nowMin());
-  const today = todayIso();
+  const [tick, setTick] = useState(() => api.nowMinutesInTZ(TZ));
+  const today = api.todayIsoInTZ(TZ);
 
   useEffect(() => {
-    const h = setInterval(() => setTick(nowMin()), 30_000);
+    const h = setInterval(() => setTick(api.nowMinutesInTZ(TZ)), 30_000);
     return () => clearInterval(h);
   }, []);
 
