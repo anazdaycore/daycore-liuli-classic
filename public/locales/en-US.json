@@ -109,6 +109,8 @@
   "materials.tokenNone": "No token yet",
   "materials.tokenGenerate": "Generate",
   "materials.tokenRotate": "Rotate",
+  "materials.tokenCopy": "Copy token",
+  "materials.tokenCopied": "Copied",
   "materials.tokenDesc": "Put this token in the browser extension's server settings so it can push Canvas data directly.",
   "materials.canvasUpload": "Upload Canvas export JSON",
   "materials.canvasDone": "Imported {c} courses, {a} assignments",

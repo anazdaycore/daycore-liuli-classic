@@ -99,6 +99,7 @@ export function PageMaterials({ boot, nav }: { boot: Boot; nav: Nav }) {
   const [busy, setBusy] = useState(false);
   // 数据源
   const [token, setToken] = useState('');
+  const [copied, setCopied] = useState(false);
   const [canvasMsg, setCanvasMsg] = useState('');
   const [icsMsg, setIcsMsg] = useState('');
   const [icsText, setIcsText] = useState('');
@@ -496,6 +497,17 @@ export function PageMaterials({ boot, nav }: { boot: Boot; nav: Nav }) {
               <div className="lc-token-box">
                 <Icon name="key" size={16} />
                 <span>{token || t('materials.tokenNone')}</span>
+                {token !== '' && (
+                  <button
+                    className="lc-btn sec"
+                    onClick={() => {
+                      void navigator.clipboard.writeText(token).then(
+                        () => { setCopied(true); window.setTimeout(() => setCopied(false), 1600); },
+                        () => { /* 剪贴板不可用（非安全上下文）时令牌仍可手动选中 */ },
+                      );
+                    }}
+                  >{copied ? t('materials.tokenCopied') : t('materials.tokenCopy')}</button>
+                )}
                 <button className="lc-btn sec" disabled={busy} onClick={() => void rotateToken()}>{token ? t('materials.tokenRotate') : t('materials.tokenGenerate')}</button>
               </div>
               <p className="lc-sub">{t('materials.tokenDesc')}</p>

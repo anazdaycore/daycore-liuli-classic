@@ -109,6 +109,8 @@
   "materials.tokenNone": "还没有令牌",
   "materials.tokenGenerate": "生成",
   "materials.tokenRotate": "轮换",
+  "materials.tokenCopy": "复制令牌",
+  "materials.tokenCopied": "已复制",
   "materials.tokenDesc": "把令牌填进浏览器插件的服务器设置，插件就能把 Canvas 数据直推过来。",
   "materials.canvasUpload": "上传 Canvas 导出 JSON",
   "materials.canvasDone": "已导入 {c} 门课、{a} 个作业",

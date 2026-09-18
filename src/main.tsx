@@ -2,7 +2,7 @@ import { StrictMode, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import './theme.css';
 import * as api from '@daycore/core';
-import { boot as bootUp, bootstrapCatalog, isFirstRun, type Boot, type Catalog } from '@daycore/core';
+import { boot as bootUp, bootstrapCatalog, type Boot, type Catalog } from '@daycore/core';
 import { App } from './App';
 import { Setting } from './Setting';
 import { FAMILY_ID, manifest } from './manifest';
@@ -25,23 +25,13 @@ const SHIPPED = ['zh-CN', 'en-US'];
 // one or the other — either the setting screen is untranslatable, or the
 // language list is hardcoded.
 function Root() {
-  // ⚠️ Evidence of a configured install skips this screen: a session token in
-  // storage (the shared cross-frontend contract from core's http.ts — a
-  // same-origin demo hands the token out directly) or a dc_sid cookie (the
-  // demo hub sets one on every response, so an opened page already IS a
-  // session). Sending either person to "which backend?" strands a working
-  // install on the setting screen; boot instead and let a bad credential fail
-  // visibly, where "edit address" stays one tap away.
-  const [phase, setPhase] = useState<'setting' | 'booting' | 'up' | 'failed'>(() => {
-    if (!isFirstRun()) return 'booting';
-    try {
-      if (localStorage.getItem('daycore.sessionToken')) return 'booting';
-      if (/(?:^|;\s*)dc_sid=/.test(document.cookie)) return 'booting';
-    } catch {
-      /* storage unreadable — asking is the safe fallback */
-    }
-    return 'setting';
-  });
+  // ⚠️ 没有开屏。地址默认就是同源（core 的 backendBase() 返回 ""，每个请求都是
+  // 相对的 /api/…），这对「前端和后端放在一起」的部署才是对的 —— 而那种部署恰恰
+  // 是常态，所以先问一句「连哪个后端」是在最正常的情况下拦路。
+  //
+  // Setting 没有删，只是降级成恢复路径：连不上时下面那个 failed 屏上仍有
+  // 「改一下地址」，点了才进它。
+  const [phase, setPhase] = useState<'setting' | 'booting' | 'up' | 'failed'>('booting');
   const [boot, setBoot] = useState<Boot | null>(null);
   const [bootCat, setBootCat] = useState<Catalog | null>(null);
   const [err, setErr] = useState('');
