@@ -75,7 +75,7 @@ export function PageSettings({ boot }: { boot: Boot }) {
   const [activeTheme, setActiveTheme] = useState(api.themeForFamily(boot.session, FAMILY_ID) || 'sky');
   const [themeDesc, setThemeDesc] = useState('');
   const [aiBase, setAiBase] = useState('');
-  const [preview, setPreview] = useState<{ variables: Record<string, string>; name: string; editingId: string | null } | null>(null);
+  const [preview, setPreview] = useState<{ variables: Record<string, string>; name: string; editingId: string | null; dark: boolean } | null>(null);
   const [menu, setMenu] = useState<{ theme: CustomTheme; x: number; y: number } | null>(null);
   const [rename, setRename] = useState<CustomTheme | null>(null);
   const [renameVal, setRenameVal] = useState('');
@@ -161,10 +161,16 @@ export function PageSettings({ boot }: { boot: Boot }) {
         : await api.generateTheme({ description: d, base: aiBase || undefined });
       if (res.variables && Object.keys(res.variables).length > 0) {
         const name = d.slice(0, 24);
-        setPreview({ variables: res.variables, name, editingId });
-        // 预览底座：AI 改一版沿用被改主题的 dark/base；纯新用所选 base（无 → sky）。
+        // ⚠️ dark 是模型对**这一套配色**的判断（theme_gen.tmpl 要求背景整体偏暗时为
+        // true），也是决定底座的唯一字段（theme.ts 的 customThemeBase：dark → night）。
+        // 这里以前读都没读它：预览按 `source?.dark ?? false` 上底座、保存也不带 ——
+        // 生成一个深色主题，预览是浅色、存下来还是浅色，看着像主题根本没生效。
+        // core 的 generateTheme 返回类型还没写 dark（后端一直在返回），所以取值带断言。
+        const dark = !!(res as { dark?: boolean }).dark;
+        setPreview({ variables: res.variables, name, editingId, dark });
+        // 预览底座：底座 id 沿用被改主题（patchTheme 不改 base），dark 用模型这次给的。
         const source = editingId ? themes.find((th) => th.id === editingId) : null;
-        applyThemeObject({ dark: source?.dark ?? false, base: source?.base ?? aiBase, variables: res.variables });
+        applyThemeObject({ dark, base: source?.base ?? aiBase, variables: res.variables });
       } else {
         setError(String(res.message ?? res.error ?? ''));
       }
@@ -185,12 +191,14 @@ export function PageSettings({ boot }: { boot: Boot }) {
     setBusy(true);
     try {
       if (preview.editingId) {
-        // AI 改一版：把生成结果写回原主题（patchTheme 不收 base，底座不变）。
-        await api.patchTheme(preview.editingId, { variables: preview.variables });
+        // AI 改一版：variables 与 dark 一起写回原主题（patchTheme 不收 base，底座 id 不变）。
+        // ⚠️ 只写 variables 会让「预览用的底座」和「存下来的底座」分家：模型这次判成
+        // 深色、存下来的还是浅色，用户下次打开就是另一个样子。
+        await api.patchTheme(preview.editingId, { variables: preview.variables, dark: preview.dark });
         applyThemeVars(preview.editingId, themes);
         setActiveTheme(preview.editingId);
       } else {
-        const th = await api.saveTheme({ name: preview.name || 'custom', base: aiBase || undefined, variables: preview.variables });
+        const th = await api.saveTheme({ name: preview.name || 'custom', base: aiBase || undefined, dark: preview.dark, variables: preview.variables });
         applyThemeVars(th.id, [th]);
         setActiveTheme(th.id);
       }
@@ -289,9 +297,11 @@ export function PageSettings({ boot }: { boot: Boot }) {
 
   return (
     <div className="lc-page">
-      <div className="lc-sechead">
-        <h1 className="lc-sechead-title">{t('nav.settings')}</h1>
-      </div>
+      {/* ⚠️ 这里曾经又渲染一遍 t('nav.settings') —— 而 App.tsx 的顶栏
+          （lc-appbar-main = titles[page]）已经是「设置」了，于是页面上出现两个
+          一模一样的标题，第二个看着像个多余的小标题。页内不再重复顶栏已经说过
+          的话：别的页各自的 sechead 是不同的标题（资料库 / 现在感觉怎么样？），
+          那些不是重复，留着。 */}
       {error && <p className="lc-err">{error}</p>}
 
       {/* ── 助手 ── */}
