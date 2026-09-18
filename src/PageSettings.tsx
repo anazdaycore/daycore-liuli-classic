@@ -260,6 +260,25 @@ export function PageSettings({ boot }: { boot: Boot }) {
     setMenu({ theme: th, x, y });
   }
 
+  /**
+   * 切语言要同时告诉后端 —— chooseLocale() 只换这一份前端的目录。
+   *
+   * ⚠️ 后端另有一份会话语言，凡是它渲染好再交给前端的字符串都跟着那份走：
+   * GET /api/mood/kinds 的 name 就是（契约原话「the label already resolved for
+   * the caller's language」）。只改本地，心情砖会一直停在会话首次接触时定下的
+   * 语言，界面其余部分却已经换了 —— 看起来像漏翻译，实际是两边语言不一致，
+   * 而且在本地改多少份语言包都不会好。
+   *
+   * ⚠️ reload 排在请求落地之后，不是之前：立刻 reload 会把还在飞的 fetch 掐掉，
+   * 后端一个字都收不到。修完「看起来仍然没好」的藏身处就是这个顺序。
+   * 写失败（例如不在用户那一对语言里，后端回 400 unsupported_locale）也照常
+   * 重载：本地这份选择本来就该生效，后端跟不上是另一件事。
+   */
+  function switchLanguage(l: string) {
+    api.chooseLocale(l);
+    void api.patchSettings({ language: l }).catch(() => {}).finally(() => location.reload());
+  }
+
   const themeCards = (builtin ?? []).map((id) => {
     const sw = BUILTIN_SWATCH[id] ?? ['#888', '#eee', '#ddd'];
     return { id, name: t(`theme.${id}`), sw, theme: null as CustomTheme | null };
@@ -325,7 +344,7 @@ export function PageSettings({ boot }: { boot: Boot }) {
           </div>
           <div className="lc-seg" style={{ flex: 'none', maxWidth: 180 }}>
             {boot.availableLocales.map((l) => (
-              <button key={l} className={'lc-segitem' + (boot.catalog.locale === l ? ' on' : '')} onClick={() => { api.chooseLocale(l); location.reload(); }}>{t(`lang.${l}`)}</button>
+              <button key={l} className={'lc-segitem' + (boot.catalog.locale === l ? ' on' : '')} onClick={() => switchLanguage(l)}>{t(`lang.${l}`)}</button>
             ))}
           </div>
         </div>
