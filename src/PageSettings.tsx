@@ -81,6 +81,10 @@ export function PageSettings({ boot }: { boot: Boot }) {
   const [renameVal, setRenameVal] = useState('');
   const [tweaking, setTweaking] = useState<CustomTheme | null>(null);
   const [tweakDesc, setTweakDesc] = useState('');
+  // 主题 JSON 面板：导出（复制带走）和导入（粘贴别人的）共用一个文本框 —— 两者
+  // 转的是同一段数据，分成两个面板只会让人猜「导出在哪、导入在哪」。
+  const [jsonOpen, setJsonOpen] = useState(false);
+  const [jsonText, setJsonText] = useState('');
   const [newFact, setNewFact] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -208,6 +212,75 @@ export function PageSettings({ boot }: { boot: Boot }) {
       setTweakDesc('');
       await load();
       setError('');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /** 一套主题的可带走形态：就是后端存的那四个字段，不多不少。 */
+  function themeJSON(th: CustomTheme): string {
+    return JSON.stringify({ name: th.name, base: th.base || undefined, dark: th.dark, variables: th.variables }, null, 2);
+  }
+
+  /**
+   * 复制主题给别人。
+   *
+   * ⚠️ 剪贴板失败不静默：分享是这条链的终点，一次静默失败等于「这个功能没有」，
+   * 而用户只会以为按钮坏了。失败时把 JSON 摆出来让人手动复制。
+   */
+  async function copyTheme(th: CustomTheme) {
+    const payload = themeJSON(th);
+    try {
+      await navigator.clipboard.writeText(payload);
+      notify(t('settings.themeCopied'));
+    } catch {
+      setJsonText(payload);
+      setJsonOpen(true);
+      notify(t('settings.themeCopyFailed'));
+    }
+  }
+
+  /**
+   * 导入一段主题 JSON。
+   *
+   * 前端只挡「形状不对」（不是 JSON、没有 name/variables）；变量名与取值合不合法
+   * 由后端按**这一端**的 token 表判定 —— 那正是「这是给另一个端做的主题」被拒的
+   * 地方，前端不该自己发明一套更松的判据。
+   */
+  async function importTheme() {
+    const raw = jsonText.trim();
+    if (!raw) return;
+    let obj: { name?: unknown; base?: unknown; dark?: unknown; variables?: unknown };
+    try {
+      obj = JSON.parse(raw) as typeof obj;
+    } catch {
+      setError(t('settings.themeImportBad'));
+      return;
+    }
+    const vars = obj.variables;
+    if (typeof obj.name !== 'string' || !obj.name.trim() || !vars || typeof vars !== 'object' || Array.isArray(vars)) {
+      setError(t('settings.themeImportBad'));
+      return;
+    }
+    setBusy(true);
+    try {
+      const clean: Record<string, string> = {};
+      for (const [k, v] of Object.entries(vars as Record<string, unknown>)) if (typeof v === 'string') clean[k] = v;
+      const th = await api.saveTheme({
+        name: obj.name.trim().slice(0, 40),
+        base: typeof obj.base === 'string' && obj.base ? obj.base : undefined,
+        dark: obj.dark === true,
+        variables: clean,
+      });
+      applyThemeVars(th.id, [th]);
+      setActiveTheme(th.id);
+      setJsonOpen(false);
+      setJsonText('');
+      await load();
+      setError('');
+      notify(t('settings.themeImportDone', { name: th.name }));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -396,6 +469,11 @@ export function PageSettings({ boot }: { boot: Boot }) {
           ))}
         </div>
         {themes.length > 0 && <p className="lc-field-sub" style={{ marginTop: 8 }}>{t('settings.themeHintMenu')}</p>}
+        <div className="lc-actrow" style={{ marginTop: 8 }}>
+          <button className="lc-btn sec" disabled={busy} onClick={() => { setJsonText(''); setJsonOpen(true); }}>
+            <Icon name="plus" size={15} /> {t('settings.themeImport')}
+          </button>
+        </div>
         <div className="lc-card" style={{ marginTop: 12 }}>
           <div className="lc-set-title lc-row8"><Icon name="wand" size={15} /> {t('settings.themeGenerate')}</div>
           <input className="lc-input" placeholder={t('settings.themeGenPh')} value={themeDesc} onChange={(e) => setThemeDesc(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') void genTheme(); }} />
@@ -480,6 +558,9 @@ export function PageSettings({ boot }: { boot: Boot }) {
       )}
       {menu && (
         <div className="lc-ctx-menu" style={{ left: menu.x, top: menu.y }}>
+          <button className="lc-ctx-item" onClick={() => { const th = menu.theme; setMenu(null); void copyTheme(th); }}>
+            <Icon name="externalLink" size={15} /> {t('settings.themeCopy')}
+          </button>
           <button className="lc-ctx-item" onClick={() => { setRename(menu.theme); setRenameVal(menu.theme.name); setMenu(null); }}>
             <Icon name="pencil" size={15} /> {t('settings.themeRename')}
           </button>
@@ -504,6 +585,15 @@ export function PageSettings({ boot }: { boot: Boot }) {
         <div className="lc-sheet-actions">
           <button className="lc-btn sec" onClick={() => setTweaking(null)}>{t('common.cancel')}</button>
           <button className="lc-btn pri" disabled={!tweakDesc.trim() || busy} onClick={() => tweaking && void genTheme(tweaking.id, tweakDesc)}>{t('settings.themeGenerateBtn')}</button>
+        </div>
+      </Sheet>
+      <Sheet open={jsonOpen} onClose={() => { setJsonOpen(false); setJsonText(''); }} title={t('settings.themeImportTitle')}>
+        <p className="lc-set-sub">{t('settings.themeImportHint')}</p>
+        <textarea className="lc-input lc-textarea" rows={8} spellCheck={false} placeholder={t('settings.themeImportPh')}
+          value={jsonText} onChange={(e) => setJsonText(e.target.value)} />
+        <div className="lc-sheet-actions">
+          <button className="lc-btn sec" onClick={() => { setJsonOpen(false); setJsonText(''); }}>{t('common.cancel')}</button>
+          <button className="lc-btn pri" disabled={!jsonText.trim() || busy} onClick={() => void importTheme()}>{t('settings.themeImportBtn')}</button>
         </div>
       </Sheet>
 
